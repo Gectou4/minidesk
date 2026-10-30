@@ -135,6 +135,84 @@ class TicketRepositoryTest extends TestCase
         }
     }
 
+    public function testCreateAccepteUnTitreDe255Caracteres(): void
+    {
+        $titre = str_repeat('é', 255);
+
+        $id = $this->creer($titre);
+
+        $this->assertSame($titre, $this->repo->findById($id)['title']);
+    }
+
+    public function testCreateCompteLaLongueurDuTitreSansLesEspacesDeBord(): void
+    {
+        $id = $this->creer('  ' . str_repeat('a', 255) . '  ');
+
+        $this->assertSame(str_repeat('a', 255), $this->repo->findById($id)['title']);
+    }
+
+    public function testCreateRefuseUnTitreDe256Caracteres(): void
+    {
+        try {
+            $this->creer(str_repeat('é', 256));
+            $this->fail('ValidationException attendue.');
+        } catch (ValidationException $e) {
+            $this->assertSame(['title'], array_keys($e->getErrors()));
+        }
+    }
+
+    public function testCreateUtiliseUneDescriptionVideSiAbsenteOuNull(): void
+    {
+        $sansDescription = $this->repo->create(['title' => 'Sans description']);
+        $descriptionNull = $this->repo->create(['title' => 'Description null', 'description' => null]);
+
+        $this->assertSame('', $this->repo->findById($sansDescription)['description']);
+        $this->assertSame('', $this->repo->findById($descriptionNull)['description']);
+    }
+
+    /**
+     * @return array<string, array{mixed}>
+     */
+    public static function descriptionsInvalides(): array
+    {
+        return [
+            'nombre'            => [42],
+            'tableau'           => [['x']],
+            'booléen'           => [true],
+            'trop longue'       => [str_repeat('a', 65536)],
+        ];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('descriptionsInvalides')]
+    public function testCreateRefuseUneDescriptionInvalide(mixed $description): void
+    {
+        try {
+            $this->repo->create(['title' => 'Ticket', 'description' => $description]);
+            $this->fail('ValidationException attendue.');
+        } catch (ValidationException $e) {
+            $this->assertSame(['description'], array_keys($e->getErrors()));
+        }
+    }
+
+    public function testCreateAccepteUneDescriptionDeLaTailleMaximale(): void
+    {
+        $description = str_repeat('a', 65535);
+
+        $id = $this->repo->create(['title' => 'Grande description', 'description' => $description]);
+
+        $this->assertSame($description, $this->repo->findById($id)['description']);
+    }
+
+    public function testCreateCumuleLesErreursDesTroisChamps(): void
+    {
+        try {
+            $this->repo->create(['title' => '', 'description' => 42, 'priority' => 'urgent']);
+            $this->fail('ValidationException attendue.');
+        } catch (ValidationException $e) {
+            $this->assertSame(['title', 'description', 'priority'], array_keys($e->getErrors()));
+        }
+    }
+
     public function testCreateAccepteUnTitreZero(): void
     {
         $id = $this->creer('0');

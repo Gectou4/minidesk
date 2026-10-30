@@ -17,6 +17,12 @@ require_once __DIR__ . '/TicketStatus.php';
  */
 class TicketRepository
 {
+    /** Taille de la colonne `tickets.title` (VARCHAR(255)), en caractères. */
+    private const TITLE_MAX_LENGTH = 255;
+
+    /** Taille maximale de la colonne `tickets.description` (TEXT), en octets. */
+    private const DESCRIPTION_MAX_BYTES = 65535;
+
     private PDO $db;
 
     public function __construct(?PDO $db = null)
@@ -52,10 +58,12 @@ class TicketRepository
      * Crée un nouveau ticket et retourne son identifiant.
      *
      * La priorité vaut `medium` si elle est absente (ou null) ; une valeur
-     * hors de TicketPriority est refusée.
+     * hors de TicketPriority est refusée. La description vaut '' si elle est
+     * absente (ou null). Les longueurs respectent le schéma SQL : `title` est
+     * limité à 255 caractères (VARCHAR) et `description` à 65 535 octets (TEXT).
      *
      * @param array{title: string, description: string, priority: string} $data
-     * @throws ValidationException si `title` ou `priority` est invalide
+     * @throws ValidationException si `title`, `description` ou `priority` est invalide
      */
     public function create(array $data): int
     {
@@ -64,6 +72,15 @@ class TicketRepository
         $title = $data['title'] ?? null;
         if (!is_string($title) || trim($title) === '') {
             $errors['title'] = 'Le champ "title" est obligatoire.';
+        } elseif (mb_strlen(trim($title)) > self::TITLE_MAX_LENGTH) {
+            $errors['title'] = 'Le champ "title" ne doit pas dépasser ' . self::TITLE_MAX_LENGTH . ' caractères.';
+        }
+
+        $description = $data['description'] ?? '';
+        if (!is_string($description)) {
+            $errors['description'] = 'Le champ "description" doit être une chaîne de caractères.';
+        } elseif (strlen($description) > self::DESCRIPTION_MAX_BYTES) {
+            $errors['description'] = 'Le champ "description" ne doit pas dépasser ' . self::DESCRIPTION_MAX_BYTES . ' octets.';
         }
 
         $priority = TicketPriority::Medium;
@@ -84,7 +101,7 @@ class TicketRepository
         );
         $stmt->execute([
             ':title'       => trim($title),
-            ':description' => $data['description'] ?? '',
+            ':description' => $description,
             ':priority'    => $priority->value,
         ]);
         return (int) $this->db->lastInsertId();
