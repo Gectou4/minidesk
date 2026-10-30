@@ -18,7 +18,6 @@ require_once __DIR__ . '/TicketRepository.php';
 header('Content-Type: application/json; charset=utf-8');
 $method = $_SERVER['REQUEST_METHOD'];
 $uri    = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-$repo   = new TicketRepository();
 
 // -----------------------------------------------------------------------
 // Helpers
@@ -39,6 +38,17 @@ function read_json_body(): array
         json_response(['error' => 'Corps JSON invalide ou manquant.'], 400);
     }
     return $data;
+}
+
+// -----------------------------------------------------------------------
+// APP init
+// -----------------------------------------------------------------------
+
+try {
+    $repo = new TicketRepository();
+} catch (Throwable $t) {
+    error_log($t->getMessage() . PHP_EOL . $t->getFile() . ':' . $t->getLine() . PHP_EOL . $t->getTraceAsString());
+    json_response(['error' => 'Service momentanément indisponible'], 503);
 }
 
 // -----------------------------------------------------------------------

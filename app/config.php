@@ -3,15 +3,18 @@
 /**
  * MiniDesk - Configuration
  *
- * Le mot de passe de la base n'est jamais écrit dans le code :
- * il est lu depuis un Docker secret (variable MYSQL_PASSWORD_FILE).
+ * Les paramètres de connexion non sensibles viennent de l'environnement.
+ * Le mot de passe est lu depuis un Docker secret (variable MYSQL_PASSWORD_FILE).
  */
 
-define('DB_HOST', getenv('DB_HOST') ?: 'db');
-define('DB_NAME', getenv('MYSQL_DATABASE') ?: 'minidesk');
-define('DB_USER', getenv('MYSQL_USER') ?: 'minidesk_user');
-
-define('APP_ENV', getenv('APP_ENV') ?: 'production');
+function require_env(string $name): string
+{
+    $value = getenv($name);
+    if ($value === false || $value === '') {
+        throw new \RuntimeException(sprintf("Variable d'environnement manquante : %s", $name));
+    }
+    return $value;
+}
 
 /**
  * Lit un secret depuis le fichier indiqué par <NAME>_FILE (Docker secrets),
@@ -35,6 +38,8 @@ function read_secret(string $name): string
     return $value;
 }
 
+define('APP_ENV', getenv('APP_ENV') ?: 'production');
+
 /**
  * Retourne une connexion PDO partagée (singleton simple).
  */
@@ -43,8 +48,13 @@ function get_db(): PDO
     static $pdo = null;
 
     if ($pdo === null) {
-        $dsn = sprintf('mysql:host=%s;dbname=%s;charset=utf8mb4', DB_HOST, DB_NAME);
-        $pdo = new PDO($dsn, DB_USER, read_secret('MYSQL_PASSWORD'), [
+        $dsn = sprintf(
+            'mysql:host=%s;dbname=%s;port=%s;charset=utf8mb4',
+            require_env('DB_HOST'),
+            require_env('MYSQL_DATABASE'),
+            require_env('DB_PORT')
+        );
+        $pdo = new PDO($dsn, require_env('MYSQL_USER'), read_secret('MYSQL_PASSWORD'), [
             PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         ]);
