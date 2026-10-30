@@ -74,11 +74,12 @@ if ($method === 'GET' && $uri === '/tickets') {
 if ($method === 'POST' && $uri === '/tickets') {
     $data = read_json_body();
 
-    if (empty($data['title'])) {
-        json_response(['error' => 'Le champ "title" est obligatoire.'], 422);
+    try {
+        $id = $repo->create($data);
+    } catch (ValidationException $e) {
+        json_response(['error' => $e->getMessage(), 'details' => $e->getErrors()], 422);
     }
 
-    $id     = $repo->create($data);
     $ticket = $repo->findById($id);
     json_response($ticket, 201);
 }

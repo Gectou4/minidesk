@@ -36,3 +36,7 @@ test-smoke: ## Teste l'API avec curl (nécessite que la stack soit up)
 	@curl -sf -X POST http://localhost:8080/tickets \
 		-H "Content-Type: application/json" \
 		-d '{"title":"Test ticket","description":"Créé via make test-smoke","priority":"low"}' && echo
+	@echo "=== POST /tickets sans title (422 attendu) ==="
+	@curl -s -o /dev/null -w "%{http_code}\n" -X POST http://localhost:8080/tickets \
+		-H "Content-Type: application/json" \
+		-d '{"description":"sans titre"}'

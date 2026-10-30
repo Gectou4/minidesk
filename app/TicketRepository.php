@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/Exceptions/ValidationException.php';
 require_once __DIR__ . '/TicketStatus.php';
 
 /**
@@ -53,12 +54,17 @@ class TicketRepository
      */
     public function create(array $data): int
     {
+        $title = $data['title'] ?? null;
+        if (!is_string($title) || trim($title) === '') {
+            throw new ValidationException(['title' => 'Le champ "title" est obligatoire.']);
+        }
+
         $stmt = $this->db->prepare(
             'INSERT INTO tickets (title, description, priority)
              VALUES (:title, :description, :priority)'
         );
         $stmt->execute([
-            ':title'       => $data['title'],
+            ':title'       => trim($title),
             ':description' => $data['description'] ?? '',
             ':priority'    => $data['priority']    ?? 'medium',
         ]);

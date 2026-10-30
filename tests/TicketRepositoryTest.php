@@ -54,6 +54,49 @@ class TicketRepositoryTest extends TestCase
         $this->assertSame('high', $ticket['priority']);
     }
 
+    public function testCreateRetireLesEspacesAutourDuTitre(): void
+    {
+        $id = $this->creer('  Titre à nettoyer  ');
+
+        $this->assertSame('Titre à nettoyer', $this->repo->findById($id)['title']);
+    }
+
+    /**
+     * @return array<string, array{array<string, mixed>}>
+     */
+    public static function donneesSansTitreValide(): array
+    {
+        return [
+            'title absent'      => [['description' => 'sans titre']],
+            'title null'        => [['title' => null]],
+            'title vide'        => [['title' => '']],
+            'title en espaces'  => [['title' => "  \t "]],
+            'title non chaîne'  => [['title' => 42]],
+            'title tableau'     => [['title' => ['x']]],
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('donneesSansTitreValide')]
+    public function testCreateRefuseUnTitreInvalide(array $data): void
+    {
+        try {
+            $this->repo->create($data);
+            $this->fail('ValidationException attendue.');
+        } catch (ValidationException $e) {
+            $this->assertArrayHasKey('title', $e->getErrors());
+        }
+    }
+
+    public function testCreateAccepteUnTitreZero(): void
+    {
+        $id = $this->creer('0');
+
+        $this->assertSame('0', $this->repo->findById($id)['title']);
+    }
+
     public function testFindByIdRetourneNullSiInexistant(): void
     {
         $this->assertNull($this->repo->findById(999999999));
