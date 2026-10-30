@@ -68,7 +68,7 @@ Implémente les fonctionnalités manquantes pour que l'API soit complète et fon
 | `GET`    | `/tickets`               | ✅ Déjà implémenté — liste tous les tickets              |
 | `POST`   | `/tickets`               | ✅ Déjà implémenté — crée un ticket                      |
 | `GET`    | `/tickets/{id}`          | ✅ Déjà implémenté — détail d'un ticket                  |
-| `PATCH`  | `/tickets/{id}/status`   | ❌ **À compléter** — met à jour le statut d'un ticket    |
+| `PATCH`  | `/tickets/{id}/status`   | ✅ Implémenté en **v1.1.0** — met à jour le statut d'un ticket (`open`, `in_progress`, `closed`) |
 
 #### Contraintes techniques
 
