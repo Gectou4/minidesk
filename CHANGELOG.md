@@ -2,6 +2,15 @@
 
 Toutes les évolutions notables de l'API MiniDesk. Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et les versions suivent [SemVer](https://semver.org/lang/fr/). La version courante est renvoyée par `GET /` (`app/index.php`).
 
+## [1.3.0] - 2026-10-30
+
+### Ajouté
+- `GET /tickets` accepte les filtres `status` et `priority` et la pagination `limit` (1 à 100) et `offset` ; un paramètre invalide répond `422`.
+- En-tête `X-Total-Count` sur `GET /tickets` : nombre de tickets correspondant aux filtres, hors pagination.
+
+### Modifié
+- `GET /tickets` trie à date de création égale par id décroissant, pour une pagination stable.
+
 ## [1.2.3] - 2026-10-30
 
 ### Corrigé
