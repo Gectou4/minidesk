@@ -162,5 +162,18 @@ if ($method === 'PATCH' && preg_match('#^/tickets/(\d+)/priority$#', $uri, $m)) 
     json_response($ticket);
 }
 
+// 405 : la route existe, mais pas avec cette méthode HTTP
+$allowed = match (true) {
+    $uri === '/'                                                   => ['GET'],
+    $uri === '/tickets'                                            => ['GET', 'POST'],
+    (bool) preg_match('#^/tickets/\d+$#', $uri)                    => ['GET'],
+    (bool) preg_match('#^/tickets/\d+/(status|priority)$#', $uri)  => ['PATCH'],
+    default                                                        => null,
+};
+if ($allowed !== null) {
+    header('Allow: ' . implode(', ', $allowed));
+    json_response(['error' => 'Méthode non autorisée.'], 405);
+}
+
 // 404 par défaut
 json_response(['error' => 'Route introuvable.'], 404);
