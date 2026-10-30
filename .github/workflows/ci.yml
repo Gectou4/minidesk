@@ -44,6 +44,30 @@ jobs:
             -d '{"title":"Ticket CI","description":"Created by CI","priority":"low"}')
           test "$code" = 201
 
+          # Corps rejeté (422) à la création
+          code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$base/tickets" \
+            -H 'Content-Type: application/json' \
+            -d '{"title":"Ticket CI","priority":"urgent"}')
+          test "$code" = 422
+
+          # PATCH statut et priorité : code HTTP seul, corps JSON en second argument
+          patch() { curl -s -o /dev/null -w '%{http_code}' -X PATCH "$base/tickets/$1" \
+            -H 'Content-Type: application/json' -d "$2"; }
+
+          curl -fsS -X PATCH "$base/tickets/1/status" \
+            -H 'Content-Type: application/json' \
+            -d '{"status":"in_progress"}' | grep -q '"status": "in_progress"'
+          curl -fsS -X PATCH "$base/tickets/1/priority" \
+            -H 'Content-Type: application/json' \
+            -d '{"priority":"low"}' | grep -q '"priority": "low"'
+
+          test "$(patch 1/status '{"status":"nimporte_quoi"}')" = 422
+          test "$(patch 1/status '{}')" = 422
+          test "$(patch 999999/status '{"status":"open"}')" = 404
+          test "$(patch 1/priority '{"priority":"urgent"}')" = 422
+          test "$(patch 1/priority '{}')" = 422
+          test "$(patch 999999/priority '{"priority":"low"}')" = 404
+
       - name: Afficher les logs en cas d'échec
         if: failure()
         run: |
