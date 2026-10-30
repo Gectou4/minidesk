@@ -88,9 +88,17 @@ Implémente les fonctionnalités manquantes pour que l'API soit complète et fon
 }
 ```
 
-Si `priority` est absente (ou `null`), elle vaut `medium`.
+Si `priority` est absente (ou `null`), elle vaut `medium`. Si `description` est absente (ou `null`), elle vaut une chaîne vide.
 
-Si `title` est absent, vide ou n'est pas une chaîne, ou si `priority` n'est pas l'une des quatre valeurs, l'API répond `422` avec le détail par champ :
+Limites (alignées sur `db/schema.sql`) :
+
+| Champ         | Règle                                                                 |
+|---------------|-----------------------------------------------------------------------|
+| `title`       | obligatoire, chaîne non vide, 255 caractères maximum (espaces de bord retirés) |
+| `description` | chaîne, 65 535 octets maximum                                         |
+| `priority`    | `low`, `medium`, `high` ou `critical`                                 |
+
+Si une règle n'est pas respectée, l'API répond `422` avec le détail par champ :
 
 ```json
 {
