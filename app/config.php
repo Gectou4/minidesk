@@ -5,7 +5,35 @@
  *
  * Les paramètres de connexion non sensibles viennent de l'environnement.
  * Le mot de passe est lu depuis un Docker secret (variable MYSQL_PASSWORD_FILE).
+ *
+ * Sur un hébergement sans variables d'environnement (mutualisé), un fichier
+ * env.json placé au-dessus du dossier de l'application les fournit.
  */
+
+/**
+ * Charge un fichier JSON {"NOM": "valeur"} dans l'environnement.
+ * Sans effet si le fichier n'existe pas, et ne remplace jamais une variable déjà définie.
+ */
+function load_env_file(string $path): void
+{
+    if (!is_readable($path)) {
+        return;
+    }
+
+    $values = json_decode((string) file_get_contents($path), true);
+    if (!is_array($values)) {
+        error_log(sprintf('Fichier de configuration invalide : %s', $path));
+        return;
+    }
+
+    foreach ($values as $name => $value) {
+        if (is_scalar($value) && getenv((string) $name) === false) {
+            putenv($name . '=' . $value);
+        }
+    }
+}
+
+load_env_file(__DIR__ . '/../env.json');
 
 function require_env(string $name): string
 {
