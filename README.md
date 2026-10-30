@@ -184,7 +184,7 @@ make test
 
 > Explique ici tes choix significatifs (architecture, outils, compromis) — quelques lignes suffisent.
 
-*(à renseigner)*
+- **Healthchecks** : `php` vérifie que PHP-FPM accepte les connexions sur le port 9000, `nginx` vérifie que `GET /` répond (donc nginx, PHP et la base fonctionnent ensemble), `db` fait un `mysqladmin ping` en TCP (`127.0.0.1`) pour ne pas être déclaré prêt pendant l'initialisation de MySQL.
 
 ---
 
