@@ -20,7 +20,7 @@ $uri    = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 // Helpers
 // -----------------------------------------------------------------------
 
-function json_response(mixed $data, int $status = 200): void
+function json_response(mixed $data, int $status = 200): never
 {
     http_response_code($status);
     echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
@@ -35,6 +35,48 @@ function read_json_body(): array
         json_response(['error' => 'Corps JSON invalide ou manquant.'], 400);
     }
     return $data;
+}
+
+/**
+ * PATCH d'un champ de ticket typé par un enum (statut, priorité).
+ *
+ * Réponses : 422 si le champ est absent ou invalide, 404 si le ticket n'existe
+ * pas, 200 avec le ticket mis à jour sinon. Le ticket est vérifié avant la
+ * valeur : un ticket inconnu répond toujours 404.
+ *
+ * @param class-string<BackedEnum>        $enum   Enum qui porte les valeurs (méthode statique values())
+ * @param callable(int, BackedEnum): bool $update Mise à jour dans le repository
+ */
+function patch_enum_field(
+    TicketRepository $repo,
+    int $id,
+    string $field,
+    string $enum,
+    string $label,
+    callable $update
+): never {
+    $data = read_json_body();
+
+    if (empty($data[$field])) {
+        json_response(['error' => "Le champ \"$field\" est obligatoire."], 422);
+    }
+
+    if (!$repo->findById($id)) {
+        json_response(['error' => 'Ticket introuvable.'], 404);
+    }
+
+    $value = is_string($data[$field]) ? $enum::tryFrom($data[$field]) : null;
+    if ($value === null) {
+        json_response([
+            'error' => "$label invalide. Valeurs acceptées : " . implode(', ', $enum::values()) . '.',
+        ], 422);
+    }
+
+    if (!$update($id, $value)) {
+        json_response(['error' => 'Ticket introuvable.'], 404);
+    }
+
+    json_response($repo->findById($id));
 }
 
 function log_throwable(Throwable $t): void
@@ -105,58 +147,12 @@ if ($method === 'GET' && preg_match('#^/tickets/(\d+)$#', $uri, $m)) {
 
 // PATCH /tickets/{id}/status
 if ($method === 'PATCH' && preg_match('#^/tickets/(\d+)/status$#', $uri, $m)) {
-    $data = read_json_body();
-
-    if (empty($data['status'])) {
-        json_response(['error' => 'Le champ "status" est obligatoire.'], 422);
-    }
-
-    $ticket = $repo->findById((int) $m[1]);
-    if (!$ticket) {
-        json_response(['error' => 'Ticket introuvable.'], 404);
-    }
-
-    $status = is_string($data['status']) ? TicketStatus::tryFrom($data['status']) : null;
-    if ($status === null) {
-        json_response([
-            'error' => 'Statut invalide. Valeurs acceptées : ' . implode(', ', TicketStatus::values()) . '.',
-        ], 422);
-    }
-
-    if (!$repo->updateStatus((int) $m[1], $status)) {
-        json_response(['error' => 'Ticket introuvable.'], 404);
-    }
-
-    $ticket = $repo->findById((int) $m[1]);
-    json_response($ticket);
+    patch_enum_field($repo, (int) $m[1], 'status', TicketStatus::class, 'Statut', $repo->updateStatus(...));
 }
 
 // PATCH /tickets/{id}/priority
 if ($method === 'PATCH' && preg_match('#^/tickets/(\d+)/priority$#', $uri, $m)) {
-    $data = read_json_body();
-
-    if (empty($data['priority'])) {
-        json_response(['error' => 'Le champ "priority" est obligatoire.'], 422);
-    }
-
-    $ticket = $repo->findById((int) $m[1]);
-    if (!$ticket) {
-        json_response(['error' => 'Ticket introuvable.'], 404);
-    }
-
-    $priority = is_string($data['priority']) ? TicketPriority::tryFrom($data['priority']) : null;
-    if ($priority === null) {
-        json_response([
-            'error' => 'Priorité invalide. Valeurs acceptées : ' . implode(', ', TicketPriority::values()) . '.',
-        ], 422);
-    }
-
-    if (!$repo->updatePriority((int) $m[1], $priority)) {
-        json_response(['error' => 'Ticket introuvable.'], 404);
-    }
-
-    $ticket = $repo->findById((int) $m[1]);
-    json_response($ticket);
+    patch_enum_field($repo, (int) $m[1], 'priority', TicketPriority::class, 'Priorité', $repo->updatePriority(...));
 }
 
 // 405 : la route existe, mais pas avec cette méthode HTTP
