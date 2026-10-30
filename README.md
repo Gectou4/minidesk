@@ -143,7 +143,7 @@ Non obligatoire. Choisis **ce qui te parle le plus** — ne te force pas à tout
 
 | # | Fichier | Ce qui était cassé | Pourquoi c'est un problème | Correction apportée |
 |---|---------|--------------------|-----------------------------|----------------------|
-| 1 | | | | |
+| 1 | `app/config.php` | Mot de passe MySQL écrit en clair dans le code (`define('DB_PASS', …)`). | Il est visible par tous ceux qui lisent le dépôt et reste dans l'historique Git. | Mot de passe retiré du code, lu depuis un Docker secret (`secrets/*.txt`, non versionnés). L'ancien mot de passe est remplacé. |
 | 2 | | | | |
 | 3 | | | | |
 | 4 | | | | |
@@ -160,7 +160,12 @@ cd minidesk
 
 # 2. Configurer l'environnement
 cp .env.example .env
-# (édite .env si nécessaire)
+# (renseigne les valeurs dans .env, il ne contient aucun mot de passe)
+
+# Les mots de passe sont des Docker secrets (fichiers non versionnés)
+cp secrets/db_password.txt.example secrets/db_password.txt
+cp secrets/db_root_password.txt.example secrets/db_root_password.txt
+# (remplace les valeurs `changeme` avant le premier démarrage)
 
 # 3. Démarrer la stack
 make up

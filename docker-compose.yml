@@ -22,6 +22,8 @@ services:
       - ./app:/var/www/html:ro
     env_file:
       - .env
+    secrets:
+      - db_password
     depends_on:
       db:
         condition: service_healthy
@@ -29,20 +31,26 @@ services:
 
   db:
     image: mysql:8.0
-    environment:
-      MYSQL_DATABASE:      ${DB_NAME}
-      MYSQL_USER:          ${DB_USER}
-      MYSQL_PASSWORD:      ${DB_PASS}
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASS}
+    env_file:
+      - .env
+    secrets:
+      - db_password
+      - db_root_password
     volumes:
       - db_data:/var/lib/mysql
       - ./db/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASS}"]
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p\"$$(cat $$MYSQL_ROOT_PASSWORD_FILE)\" --silent"]
       interval: 5s
       timeout: 5s
       retries: 10
     restart: unless-stopped
+
+secrets:
+  db_password:
+    file: ./secrets/db_password.txt
+  db_root_password:
+    file: ./secrets/db_root_password.txt
 
 volumes:
   db_data:

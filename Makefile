@@ -20,7 +20,7 @@ shell-php: ## Ouvre un shell dans le container PHP
 	docker compose exec php sh
 
 shell-db: ## Ouvre un shell MySQL
-	docker compose exec db mysql -u$${DB_USER} -p$${DB_PASS} $${DB_NAME}
+	docker compose exec db sh -c 'mysql -u"$$MYSQL_USER" -p"$$(cat "$$MYSQL_PASSWORD_FILE")" "$$MYSQL_DATABASE"'
 
 test: ## Lance les tests curl de l'API (nécessite que la stack soit up)
 	@echo "\n=== GET / ==="

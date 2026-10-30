@@ -1,5 +1,9 @@
 # Secrets — ne jamais versionner
 .env
+.env.*
+!.env.example
+secrets/*
+!secrets/*.example
 
 # Docker
 .docker/
