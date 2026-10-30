@@ -14,6 +14,8 @@ require_once __DIR__ . '/config.php';
  */
 class TicketRepository
 {
+    private const STATUSES = ['open', 'in_progress', 'closed'];
+
     private PDO $db;
 
     public function __construct(?PDO $db = null)
@@ -67,8 +69,6 @@ class TicketRepository
     /**
      * Met à jour le statut d'un ticket.
      *
-     * ✏️  MÉTHODE À IMPLÉMENTER
-     *
      * Contraintes :
      *   - Utiliser une requête préparée (jamais d'interpolation directe)
      *   - Valider que $status fait partie des valeurs autorisées :
@@ -81,7 +81,14 @@ class TicketRepository
      */
     public function updateStatus(int $id, string $status): bool
     {
-        // TODO : à implémenter
-        throw new \RuntimeException('updateStatus() n\'est pas encore implémentée.');
+        if (!in_array($status, self::STATUSES, true)) {
+            return false;
+        }
+
+        $stmt = $this->db->prepare('UPDATE tickets SET status = :status WHERE id = :id');
+        $stmt->execute([':status' => $status, ':id' => $id]);
+
+        // MySQL compte 0 ligne si le statut est déjà celui demandé : on vérifie l'existence.
+        return $stmt->rowCount() > 0 || $this->findById($id) !== null;
     }
 }
