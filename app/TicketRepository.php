@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/Exceptions/ValidationException.php';
+require_once __DIR__ . '/TicketPriority.php';
 require_once __DIR__ . '/TicketStatus.php';
 
 /**
@@ -50,13 +51,31 @@ class TicketRepository
     /**
      * Crée un nouveau ticket et retourne son identifiant.
      *
+     * La priorité vaut `medium` si elle est absente (ou null) ; une valeur
+     * hors de TicketPriority est refusée.
+     *
      * @param array{title: string, description: string, priority: string} $data
+     * @throws ValidationException si `title` ou `priority` est invalide
      */
     public function create(array $data): int
     {
+        $errors = [];
+
         $title = $data['title'] ?? null;
         if (!is_string($title) || trim($title) === '') {
-            throw new ValidationException(['title' => 'Le champ "title" est obligatoire.']);
+            $errors['title'] = 'Le champ "title" est obligatoire.';
+        }
+
+        $priority = TicketPriority::Medium;
+        if (($data['priority'] ?? null) !== null) {
+            $priority = is_string($data['priority']) ? TicketPriority::tryFrom($data['priority']) : null;
+            if ($priority === null) {
+                $errors['priority'] = 'Priorité invalide. Valeurs acceptées : ' . implode(', ', TicketPriority::values()) . '.';
+            }
+        }
+
+        if ($errors !== []) {
+            throw new ValidationException($errors);
         }
 
         $stmt = $this->db->prepare(
@@ -66,7 +85,7 @@ class TicketRepository
         $stmt->execute([
             ':title'       => trim($title),
             ':description' => $data['description'] ?? '',
-            ':priority'    => $data['priority']    ?? 'medium',
+            ':priority'    => $priority->value,
         ]);
         return (int) $this->db->lastInsertId();
     }
@@ -90,6 +109,25 @@ class TicketRepository
         $stmt->execute([':status' => $status->value, ':id' => $id]);
 
         // MySQL compte 0 ligne si le statut est déjà celui demandé : on vérifie l'existence.
+        return $stmt->rowCount() > 0 || $this->findById($id) !== null;
+    }
+
+    /**
+     * Met à jour la priorité d'un ticket.
+     *
+     * Comme updateStatus() : la priorité est typée par l'enum TicketPriority,
+     * donc une valeur invalide ne peut pas arriver jusqu'ici.
+     *
+     * @param int            $id       Identifiant du ticket
+     * @param TicketPriority $priority Nouvelle priorité
+     * @return bool true si le ticket existe et a été mis à jour, false sinon
+     */
+    public function updatePriority(int $id, TicketPriority $priority): bool
+    {
+        $stmt = $this->db->prepare('UPDATE tickets SET priority = :priority WHERE id = :id');
+        $stmt->execute([':priority' => $priority->value, ':id' => $id]);
+
+        // MySQL compte 0 ligne si la priorité est déjà celle demandée : on vérifie l'existence.
         return $stmt->rowCount() > 0 || $this->findById($id) !== null;
     }
 }

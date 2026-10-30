@@ -121,5 +121,33 @@ if ($method === 'PATCH' && preg_match('#^/tickets/(\d+)/status$#', $uri, $m)) {
     json_response($ticket);
 }
 
+// PATCH /tickets/{id}/priority
+if ($method === 'PATCH' && preg_match('#^/tickets/(\d+)/priority$#', $uri, $m)) {
+    $data = read_json_body();
+
+    if (empty($data['priority'])) {
+        json_response(['error' => 'Le champ "priority" est obligatoire.'], 422);
+    }
+
+    $ticket = $repo->findById((int) $m[1]);
+    if (!$ticket) {
+        json_response(['error' => 'Ticket introuvable.'], 404);
+    }
+
+    $priority = is_string($data['priority']) ? TicketPriority::tryFrom($data['priority']) : null;
+    if ($priority === null) {
+        json_response([
+            'error' => 'Priorité invalide. Valeurs acceptées : ' . implode(', ', TicketPriority::values()) . '.',
+        ], 422);
+    }
+
+    if (!$repo->updatePriority((int) $m[1], $priority)) {
+        json_response(['error' => 'Ticket introuvable.'], 404);
+    }
+
+    $ticket = $repo->findById((int) $m[1]);
+    json_response($ticket);
+}
+
 // 404 par défaut
 json_response(['error' => 'Route introuvable.'], 404);

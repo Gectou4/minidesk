@@ -90,6 +90,51 @@ class TicketRepositoryTest extends TestCase
         }
     }
 
+    public function testCreateUtiliseMediumSiLaPrioriteEstAbsenteOuNull(): void
+    {
+        $sansPriorite = $this->repo->create(['title' => 'Sans priorité']);
+        $prioriteNull = $this->repo->create(['title' => 'Priorité null', 'priority' => null]);
+
+        $this->assertSame(TicketPriority::Medium->value, $this->repo->findById($sansPriorite)['priority']);
+        $this->assertSame(TicketPriority::Medium->value, $this->repo->findById($prioriteNull)['priority']);
+    }
+
+    /**
+     * @return array<string, array{mixed}>
+     */
+    public static function prioritesInvalides(): array
+    {
+        return [
+            'valeur inconnue' => ['urgent'],
+            'chaîne vide'     => [''],
+            'casse différente' => ['HIGH'],
+            'nombre'          => [3],
+            'tableau'         => [['high']],
+        ];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('prioritesInvalides')]
+    public function testCreateRefuseUnePrioriteInvalide(mixed $priorite): void
+    {
+        try {
+            $this->repo->create(['title' => 'Ticket', 'priority' => $priorite]);
+            $this->fail('ValidationException attendue.');
+        } catch (ValidationException $e) {
+            $this->assertArrayHasKey('priority', $e->getErrors());
+            $this->assertArrayNotHasKey('title', $e->getErrors());
+        }
+    }
+
+    public function testCreateCumuleLesErreursTitreEtPriorite(): void
+    {
+        try {
+            $this->repo->create(['title' => '', 'priority' => 'urgent']);
+            $this->fail('ValidationException attendue.');
+        } catch (ValidationException $e) {
+            $this->assertSame(['title', 'priority'], array_keys($e->getErrors()));
+        }
+    }
+
     public function testCreateAccepteUnTitreZero(): void
     {
         $id = $this->creer('0');
@@ -146,5 +191,44 @@ class TicketRepositoryTest extends TestCase
     public function testUpdateStatusRetourneFalseSiTicketInexistant(): void
     {
         $this->assertFalse($this->repo->updateStatus(999999999, TicketStatus::Closed));
+    }
+
+    public function testUpdatePriorityAvecUnePrioriteValide(): void
+    {
+        $id = $this->creer();
+
+        $this->assertTrue($this->repo->updatePriority($id, TicketPriority::Critical));
+        $this->assertSame(TicketPriority::Critical->value, $this->repo->findById($id)['priority']);
+    }
+
+    public function testUpdatePriorityAvecLaPrioriteDejaActuelle(): void
+    {
+        $id = $this->creer();
+
+        $this->assertTrue($this->repo->updatePriority($id, TicketPriority::Medium));
+    }
+
+    public function testUpdatePriorityNeModifiePasLesAutresTicketsNiLeStatut(): void
+    {
+        $cible = $this->creer('Cible');
+        $autre = $this->creer('Autre');
+
+        $this->repo->updatePriority($cible, TicketPriority::Low);
+
+        $this->assertSame(TicketPriority::Medium->value, $this->repo->findById($autre)['priority']);
+        $this->assertSame(TicketStatus::Open->value, $this->repo->findById($cible)['status']);
+    }
+
+    public function testUpdatePriorityRefuseUneChaineBrute(): void
+    {
+        $id = $this->creer();
+
+        $this->expectException(TypeError::class);
+        $this->repo->updatePriority($id, 'nimporte_quoi');
+    }
+
+    public function testUpdatePriorityRetourneFalseSiTicketInexistant(): void
+    {
+        $this->assertFalse($this->repo->updatePriority(999999999, TicketPriority::High));
     }
 }
