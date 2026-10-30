@@ -147,7 +147,7 @@ Non obligatoire. Choisis **ce qui te parle le plus** — ne te force pas à tout
 | 2 | `app/TicketRepository.php` | `findById()` utilise l'id directement dans la requête SQL. | Risque d'injection SQL. | Requête préparée avec paramètre lié (`:id`). |
 | 3 | `app/index.php` | Le header `Content-Type` JSON n'était jamais envoyé. | Les clients (curl, fetch, Postman) ne savent pas qu'ils reçoivent du JSON. | `header('Content-Type: application/json; charset=utf-8')` ajouté une seule fois, avant toutes les routes. |
 | 4 | `Dockerfile` | L'image `php:8.2-apache` embarque Apache, alors que nginx attend PHP-FPM sur le port 9000. | Nginx ne peut pas joindre PHP, l'application ne répond pas. | Image `php:8.2-fpm`. |
-| 5 | | | | |
+| 5 | `docker-compose.yml` | Le port était mappé en `8080:8080`, alors que nginx écoute sur le port 80 dans le conteneur. | Le port 8080 de l'hôte ne mène à rien, l'application est inaccessible. | Mapping corrigé en `8080:80`. |
 
 ---
 

@@ -1,15 +1,11 @@
 version: '3.9'
 
-# ⚠️ BUG #5 : le port exposé sur l'hôte est 8080, mais le service nginx écoute
-#             sur le port 80 à l'intérieur du container.
-#             Le mapping "8080:8080" est incorrect — corrigez-le.
-
 services:
 
   nginx:
     image: nginx:1.25-alpine
     ports:
-      - "8080:8080"
+      - "8080:80"
     volumes:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
