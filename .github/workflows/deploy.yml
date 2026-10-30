@@ -1,0 +1,72 @@
+name: Deploy
+
+on:
+  push:
+    branches: [prod]
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    needs: ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Générer env.json (configuration de l'application)
+        env:
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        run: |
+          mkdir deploy-config
+          jq -n \
+            --arg host "$DB_HOST" \
+            --arg name "$DB_NAME" \
+            --arg user "$DB_USER" \
+            --arg pass "$DB_PASSWORD" \
+            '{DB_HOST: $host, DB_PORT: "3306", MYSQL_DATABASE: $name, MYSQL_USER: $user, MYSQL_PASSWORD: $pass, APP_ENV: "production"}' \
+            > deploy-config/env.json
+
+      - name: Envoyer l'application (app/)
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          local-dir: ./app/
+          server-dir: ${{ vars.FTP_APP_DIR }}
+
+      - name: Envoyer env.json (hors du dossier web)
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          local-dir: ./deploy-config/
+          server-dir: ./
+          state-name: .ftp-deploy-sync-state-config.json
+
+      - name: Vérifier le site
+        env:
+          PROD_URL: ${{ vars.PROD_URL }}
+        run: |
+          set -e
+          opts=(--retry 5 --retry-delay 3 --retry-all-errors)
+
+          curl -fsS "${opts[@]}" "$PROD_URL/" | grep -q '"status": "ok"'
+          curl -fsS "${opts[@]}" -D - -o /dev/null "$PROD_URL/tickets" | grep -qi '^content-type: application/json'
+
+          # La configuration ne doit pas être accessible depuis le web
+          code=$(curl -s -o /dev/null -w '%{http_code}' "$PROD_URL/env.json")
+          test "$code" != 200

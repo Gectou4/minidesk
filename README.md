@@ -180,6 +180,24 @@ make test
 
 ---
 
+### Déploiement OVH (hébergement mutualisé)
+
+Un push sur la branche `prod` lance la CI, puis déploie le contenu de `app/` par FTPS sur l'hébergement OVH (`.github/workflows/deploy.yml`).
+
+**Réglages GitHub** (environnement `production`) :
+- secrets : `FTP_SERVER`, `FTP_USERNAME`, `FTP_PASSWORD`, `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`
+- variables : `PROD_URL`, `FTP_APP_DIR` (dossier racine du site, avec un `/` final)
+
+**Une seule fois côté OVH** : choisir PHP 8.2 ou plus, créer la base MySQL, puis importer le schéma sans ses deux premières lignes :
+
+```bash
+sed '/^CREATE DATABASE/d;/^USE /d' db/schema.sql > schema-ovh.sql
+```
+
+**Limites** : pas de retour arrière ni de migration de base automatiques. Le mot de passe de la base est dans `env.json` sur le serveur, hors du dossier web.
+
+---
+
 ### Choix techniques
 
 > Explique ici tes choix significatifs (architecture, outils, compromis) — quelques lignes suffisent.
