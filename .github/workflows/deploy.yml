@@ -44,7 +44,8 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq lftp
           mkdir -p ~/.ssh
-          printf '%s\n' "$SFTP_HOST_KEY" > ~/.ssh/known_hosts
+          printf '%s\n' "$SFTP_HOST_KEY" | tr -d '\r' | grep -v '^#' > ~/.ssh/known_hosts
+          ssh-keygen -lf ~/.ssh/known_hosts
 
       - name: Envoyer l'application (app/)
         env:
@@ -54,7 +55,7 @@ jobs:
           FTP_APP_DIR: ${{ vars.FTP_APP_DIR }}
         run: |
           set -e
-          lftp -u "$FTP_USERNAME" "sftp://$FTP_SERVER" <<EOF
+          lftp -u "$FTP_USERNAME,$LFTP_PASSWORD" "sftp://$FTP_SERVER" <<EOF
           set cmd:fail-exit yes
           set sftp:auto-confirm no
           set sftp:connect-program "ssh -a -x -o StrictHostKeyChecking=yes"
@@ -68,7 +69,7 @@ jobs:
           LFTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
         run: |
           set -e
-          lftp -u "$FTP_USERNAME" "sftp://$FTP_SERVER" <<EOF
+          lftp -u "$FTP_USERNAME,$LFTP_PASSWORD" "sftp://$FTP_SERVER" <<EOF
           set cmd:fail-exit yes
           set sftp:auto-confirm no
           set sftp:connect-program "ssh -a -x -o StrictHostKeyChecking=yes"
