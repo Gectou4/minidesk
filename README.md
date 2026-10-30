@@ -172,8 +172,9 @@ make up
 # ou : docker compose up -d --build
 
 # 4. Vérifier que tout fonctionne
-make test
-# ou : curl http://localhost:8080/
+docker compose run --rm phpunit    # tests PHPUnit (dans Docker, sur la base de la stack)
+make test                          # raccourci de la commande ci-dessus
+make test-smoke                    # appels curl sur l'API (stack démarrée)
 ```
 
 > **URL publique** : *(à renseigner)*
@@ -207,6 +208,7 @@ sed '/^CREATE DATABASE/d;/^USE /d' db/schema.sql > schema-ovh.sql
 - **Encodage** : le serveur MySQL est lancé en `utf8mb4` / `utf8mb4_unicode_ci` (`command` du service `db`), et `LANG=C.UTF-8` fait lire `schema.sql` en UTF-8 à l'import. Sans cela, les accents étaient double-encodés (`bloquÃ©es`).
 - **Images** : nginx 1.30 et MySQL 8.4 (LTS), versions supportées. L'option `--character-set-client-handshake` n'existe plus en MySQL 8.4, d'où `LANG=C.UTF-8`.
 - **CI** : le workflow `.github/workflows/ci.yml` (GitHub Actions) construit la stack avec des mots de passe jetables, attend que les healthchecks soient verts, puis teste l'API avec `curl` (`/`, `/tickets`, `/tickets/{id}`, 404, création).
+- **Tests PHPUnit** : `docker compose run --rm phpunit` (ou `make test`) lance PHPUnit dans un conteneur dédié (`Dockerfile.test`, service `phpunit` du profil `test`, donc absent de `docker compose up`), relié à la base de la stack. Chaque test de `TicketRepository` tourne dans une transaction annulée à la fin, donc les données ne changent pas. `TicketRepository` accepte un `PDO` en paramètre (défaut : `get_db()`) pour rester testable. Les tests de `config.php` n'ont pas besoin de la base.
 - **Configuration sans variables d'environnement** : sur un hébergement mutualisé, `config.php` lit un fichier `env.json` placé au-dessus du dossier de l'application (hors du dossier web). Les variables déjà définies (Docker) restent prioritaires.
 - **Apache** : `app/.htaccess` est l'équivalent de `nginx/default.conf` pour l'hébergement mutualisé (routage vers `index.php`, fichiers sensibles interdits). Il est sans effet sous nginx.
 

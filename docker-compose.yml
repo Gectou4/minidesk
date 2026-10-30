@@ -57,6 +57,25 @@ services:
       --character-set-server=utf8mb4
       --collation-server=utf8mb4_unicode_ci
 
+  # Tests : docker compose run --rm phpunit (profil test : jamais lancé par `up`)
+  phpunit:
+    profiles: [test]
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    environment:
+      APP_ENV: test
+    secrets:
+      - db_password
+    depends_on:
+      db:
+        condition: service_healthy
+    command: sh -c "composer install --no-interaction --prefer-dist && vendor/bin/phpunit"
+
 secrets:
   db_password:
     file: ./secrets/db_password.txt

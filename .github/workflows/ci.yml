@@ -23,6 +23,9 @@ jobs:
       - name: Démarrer la stack
         run: docker compose up -d --build --wait --wait-timeout 120
 
+      - name: Lancer les tests PHPUnit
+        run: docker compose run --rm phpunit
+
       - name: Vérifier l'API
         run: |
           set -e

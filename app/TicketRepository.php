@@ -16,9 +16,9 @@ class TicketRepository
 {
     private PDO $db;
 
-    public function __construct()
+    public function __construct(?PDO $db = null)
     {
-        $this->db = get_db();
+        $this->db = $db ?? get_db();
     }
 
     /**

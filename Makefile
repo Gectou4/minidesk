@@ -1,4 +1,4 @@
-.PHONY: help up down logs ps shell-php shell-db test
+.PHONY: help up down logs ps shell-php shell-db test test-smoke
 
 help: ## Affiche cette aide
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -22,15 +22,17 @@ shell-php: ## Ouvre un shell dans le container PHP
 shell-db: ## Ouvre un shell MySQL
 	docker compose exec db sh -c 'mysql -u"$$MYSQL_USER" -p"$$(cat "$$MYSQL_PASSWORD_FILE")" "$$MYSQL_DATABASE"'
 
-test: ## Lance les tests curl de l'API (nécessite que la stack soit up)
-	@echo "\n=== GET / ==="
-	curl -s http://localhost:8080/ | python3 -m json.tool || true
+test: ## Lance les tests PHPUnit dans Docker (démarre la base si besoin)
+	docker compose run --rm --build phpunit
 
-	@echo "\n=== GET /tickets ==="
-	curl -s http://localhost:8080/tickets | python3 -m json.tool || true
-
-	@echo "\n=== POST /tickets ==="
-	curl -s -X POST http://localhost:8080/tickets \
+test-smoke: ## Teste l'API avec curl (nécessite que la stack soit up)
+	@echo "=== GET / ==="
+	@curl -sf http://localhost:8080/ && echo
+	@echo "=== GET /tickets ==="
+	@curl -sf http://localhost:8080/tickets && echo
+	@echo "=== GET /tickets/1 ==="
+	@curl -sf http://localhost:8080/tickets/1 && echo
+	@echo "=== POST /tickets ==="
+	@curl -sf -X POST http://localhost:8080/tickets \
 		-H "Content-Type: application/json" \
-		-d '{"title":"Test ticket","description":"Créé via make test","priority":"low"}' \
-		| python3 -m json.tool || true
+		-d '{"title":"Test ticket","description":"Créé via make test-smoke","priority":"low"}' && echo
