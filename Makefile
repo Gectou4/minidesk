@@ -74,3 +74,6 @@ test-smoke: ## Teste l'API avec curl (nécessite que la stack soit up)
 	@curl -s -D - -o /dev/null "http://localhost:8080/tickets?status=open&limit=2" | grep -iE '^(HTTP|x-total-count)'
 	@echo "=== GET /tickets?limit=0 (422 attendu) ==="
 	@curl -s -o /dev/null -w "%{http_code}\n" "http://localhost:8080/tickets?limit=0"
+	@echo "=== POST /tickets avec un corps de 600 Ko (413 attendu) ==="
+	@head -c 600000 /dev/zero | tr '\0' 'a' | curl -s -o /dev/null -w "%{http_code}\n" -X POST http://localhost:8080/tickets \
+		-H "Content-Type: application/json" --data-binary @-

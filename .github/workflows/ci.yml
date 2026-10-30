@@ -81,6 +81,12 @@ jobs:
           test "$(curl -s -o /dev/null -w '%{http_code}' "$base/tickets?status=nimporte")" = 422
           test "$(curl -s -o /dev/null -w '%{http_code}' "$base/tickets?limit=0")" = 422
 
+          # Corps trop volumineux : 413 en JSON (limite nginx de 512 Kio)
+          headers=$(head -c 600000 /dev/zero | tr '\0' 'a' | curl -s -D - -o /dev/null -X POST "$base/tickets" \
+            -H 'Content-Type: application/json' --data-binary @-)
+          echo "$headers" | head -1 | grep -q ' 413 '
+          echo "$headers" | grep -qi '^content-type: application/json'
+
       - name: Afficher les logs en cas d'échec
         if: failure()
         run: |
