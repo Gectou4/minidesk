@@ -40,14 +40,27 @@ function read_json_body(): array
     return $data;
 }
 
+function log_throwable(Throwable $t): void
+{
+    error_log($t->getMessage() . PHP_EOL . $t->getFile() . ':' . $t->getLine() . PHP_EOL . $t->getTraceAsString());
+}
+
 // -----------------------------------------------------------------------
 // APP init
 // -----------------------------------------------------------------------
 
+// Filet de sécurité : toute exception non rattrapée pendant le routage (erreur
+// PDO, TypeError...) est journalisée puis renvoyée en 500 JSON, sans détail
+// technique côté client.
+set_exception_handler(static function (Throwable $t): void {
+    log_throwable($t);
+    json_response(['error' => 'Erreur interne du serveur'], 500);
+});
+
 try {
     $repo = new TicketRepository();
 } catch (Throwable $t) {
-    error_log($t->getMessage() . PHP_EOL . $t->getFile() . ':' . $t->getLine() . PHP_EOL . $t->getTraceAsString());
+    log_throwable($t);
     json_response(['error' => 'Service momentanément indisponible'], 503);
 }
 
