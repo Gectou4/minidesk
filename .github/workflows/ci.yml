@@ -68,6 +68,12 @@ jobs:
           test "$(patch 1/priority '{}')" = 422
           test "$(patch 999999/priority '{"priority":"low"}')" = 404
 
+          # 405 avec en-tête Allow quand la route existe mais pas la méthode ; 404 sinon
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X DELETE "$base/tickets/1")" = 405
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X PUT "$base/tickets/1/status")" = 405
+          curl -s -D - -o /dev/null -X PATCH "$base/tickets" | grep -qi '^allow: GET, POST'
+          test "$(curl -s -o /dev/null -w '%{http_code}' "$base/nimporte")" = 404
+
       - name: Afficher les logs en cas d'échec
         if: failure()
         run: |

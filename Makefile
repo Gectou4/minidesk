@@ -64,3 +64,9 @@ test-smoke: ## Teste l'API avec curl (nécessite que la stack soit up)
 	@curl -s -o /dev/null -w "%{http_code}\n" -X PATCH http://localhost:8080/tickets/999999/priority \
 		-H "Content-Type: application/json" \
 		-d '{"priority":"low"}'
+	@echo "=== DELETE /tickets/1 (405 attendu) ==="
+	@curl -s -o /dev/null -w "%{http_code}\n" -X DELETE http://localhost:8080/tickets/1
+	@echo "=== PUT /tickets/1/status (405 attendu) ==="
+	@curl -s -o /dev/null -w "%{http_code}\n" -X PUT http://localhost:8080/tickets/1/status
+	@echo "=== GET /nimporte (404 attendu) ==="
+	@curl -s -o /dev/null -w "%{http_code}\n" -X GET http://localhost:8080/nimporte
