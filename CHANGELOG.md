@@ -2,6 +2,11 @@
 
 Toutes les évolutions notables de l'API MiniDesk. Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et les versions suivent [SemVer](https://semver.org/lang/fr/). La version courante est renvoyée par `GET /` (`app/index.php`).
 
+## [1.3.1] - 2026-10-30
+
+### Corrigé
+- Un corps de requête de plus de 512 Kio répond `413` en JSON (nginx via `client_max_body_size`, PHP via `MAX_BODY_BYTES` pour Apache), au lieu d'être lu en entier.
+
 ## [1.3.0] - 2026-10-30
 
 ### Ajouté
