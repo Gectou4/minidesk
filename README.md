@@ -69,6 +69,7 @@ Implémente les fonctionnalités manquantes pour que l'API soit complète et fon
 | `POST`   | `/tickets`               | ✅ Déjà implémenté — crée un ticket                      |
 | `GET`    | `/tickets/{id}`          | ✅ Déjà implémenté — détail d'un ticket                  |
 | `PATCH`  | `/tickets/{id}/status`   | ✅ Implémenté en **v1.1.0** — met à jour le statut d'un ticket (`open`, `in_progress`, `closed`) |
+| `PATCH`  | `/tickets/{id}/priority` | ✅ Implémenté en **v1.2.0** — met à jour la priorité d'un ticket (`low`, `medium`, `high`, `critical`) |
 
 #### Contraintes techniques
 
@@ -87,12 +88,17 @@ Implémente les fonctionnalités manquantes pour que l'API soit complète et fon
 }
 ```
 
-Si `title` est absent, vide ou n'est pas une chaîne, l'API répond `422` :
+Si `priority` est absente (ou `null`), elle vaut `medium`.
+
+Si `title` est absent, vide ou n'est pas une chaîne, ou si `priority` n'est pas l'une des quatre valeurs, l'API répond `422` avec le détail par champ :
 
 ```json
 {
   "error": "Données invalides.",
-  "details": { "title": "Le champ \"title\" est obligatoire." }
+  "details": {
+    "title": "Le champ \"title\" est obligatoire.",
+    "priority": "Priorité invalide. Valeurs acceptées : low, medium, high, critical."
+  }
 }
 ```
 
@@ -103,6 +109,16 @@ Si `title` est absent, vide ou n'est pas une chaîne, l'API répond `422` :
   "status": "open|in_progress|closed"
 }
 ```
+
+#### Corps attendu pour `PATCH /tickets/{id}/priority`
+
+```json
+{
+  "priority": "low|medium|high|critical"
+}
+```
+
+Réponses : `200` avec le ticket mis à jour, `404` si le ticket n'existe pas, `422` si `priority` est absente ou invalide.
 
 ---
 
