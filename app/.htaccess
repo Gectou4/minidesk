@@ -1,0 +1,13 @@
+# Équivalent Apache de nginx/default.conf (hébergement mutualisé).
+# Sans effet sous nginx (Docker).
+
+# Redirige tout ce qui n'est pas un fichier ou un dossier vers index.php (routeur frontal)
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.php [L]
+
+# Interdit l'accès direct aux fichiers cachés et aux fichiers non-PHP sensibles
+<FilesMatch "(^\.|\.(sql|env|md|json)$)">
+    Require all denied
+</FilesMatch>
