@@ -65,7 +65,7 @@ Implémente les fonctionnalités manquantes pour que l'API soit complète et fon
 | Méthode  | Route                    | Description                                              |
 |----------|--------------------------|----------------------------------------------------------|
 | `GET`    | `/`                      | ✅ Déjà implémenté — health check                        |
-| `GET`    | `/tickets`               | ✅ Déjà implémenté — liste tous les tickets              |
+| `GET`    | `/tickets`               | ✅ Déjà implémenté — liste les tickets (filtres et pagination depuis **v1.3.0**) |
 | `POST`   | `/tickets`               | ✅ Déjà implémenté — crée un ticket                      |
 | `GET`    | `/tickets/{id}`          | ✅ Déjà implémenté — détail d'un ticket                  |
 | `PATCH`  | `/tickets/{id}/status`   | ✅ Implémenté en **v1.1.0** — met à jour le statut d'un ticket (`open`, `in_progress`, `closed`) |
@@ -109,6 +109,17 @@ Si une règle n'est pas respectée, l'API répond `422` avec le détail par cham
   }
 }
 ```
+
+#### Paramètres de `GET /tickets`
+
+| Paramètre  | Valeurs                              | Effet                                                          |
+|------------|--------------------------------------|----------------------------------------------------------------|
+| `status`   | `open`, `in_progress`, `closed`      | ne renvoie que les tickets de ce statut                        |
+| `priority` | `low`, `medium`, `high`, `critical`  | ne renvoie que les tickets de cette priorité                   |
+| `limit`    | entier de 1 à 100                    | nombre maximum de tickets (toute la liste si absent)           |
+| `offset`   | entier supérieur ou égal à 0         | nombre de tickets à sauter (0 par défaut)                      |
+
+Les filtres se combinent (`/tickets?status=open&priority=high&limit=10`). Les tickets sont triés du plus récent au plus ancien. L'en-tête `X-Total-Count` donne le nombre total de tickets qui correspondent aux filtres, sans tenir compte de `limit` et `offset`. Un paramètre invalide répond `422` avec le détail par paramètre.
 
 #### Corps attendu pour `PATCH /tickets/{id}/status`
 
