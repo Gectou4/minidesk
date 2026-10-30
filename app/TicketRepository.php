@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/TicketStatus.php';
 
 /**
  * MiniDesk - TicketRepository
@@ -14,8 +15,6 @@ require_once __DIR__ . '/config.php';
  */
 class TicketRepository
 {
-    private const STATUSES = ['open', 'in_progress', 'closed'];
-
     private PDO $db;
 
     public function __construct(?PDO $db = null)
@@ -71,22 +70,18 @@ class TicketRepository
      *
      * Contraintes :
      *   - Utiliser une requête préparée (jamais d'interpolation directe)
-     *   - Valider que $status fait partie des valeurs autorisées :
-     *       'open', 'in_progress', 'closed'
-     *   - Retourner true si la mise à jour a affecté au moins une ligne,
-     *     false si le ticket n'existe pas ou si le statut est invalide.
+     *   - Le statut est typé par l'enum TicketStatus : une valeur invalide
+     *     ne peut pas arriver jusqu'ici (voir TicketStatus::tryFrom()).
+     *   - Retourner true si le ticket existe et a été mis à jour,
+     *     false s'il n'existe pas.
      *
-     * @param int    $id     Identifiant du ticket
-     * @param string $status Nouveau statut
+     * @param int          $id     Identifiant du ticket
+     * @param TicketStatus $status Nouveau statut
      */
-    public function updateStatus(int $id, string $status): bool
+    public function updateStatus(int $id, TicketStatus $status): bool
     {
-        if (!in_array($status, self::STATUSES, true)) {
-            return false;
-        }
-
         $stmt = $this->db->prepare('UPDATE tickets SET status = :status WHERE id = :id');
-        $stmt->execute([':status' => $status, ':id' => $id]);
+        $stmt->execute([':status' => $status->value, ':id' => $id]);
 
         // MySQL compte 0 ligne si le statut est déjà celui demandé : on vérifie l'existence.
         return $stmt->rowCount() > 0 || $this->findById($id) !== null;

@@ -100,9 +100,15 @@ if ($method === 'PATCH' && preg_match('#^/tickets/(\d+)/status$#', $uri, $m)) {
         json_response(['error' => 'Le champ "status" est obligatoire.'], 422);
     }
 
-    $ok = $repo->updateStatus((int) $m[1], $data['status']);
-    if (!$ok) {
-        json_response(['error' => 'Ticket introuvable ou statut invalide.'], 404);
+    $status = is_string($data['status']) ? TicketStatus::tryFrom($data['status']) : null;
+    if ($status === null) {
+        json_response([
+            'error' => 'Statut invalide. Valeurs acceptées : ' . implode(', ', TicketStatus::values()) . '.',
+        ], 422);
+    }
+
+    if (!$repo->updateStatus((int) $m[1], $status)) {
+        json_response(['error' => 'Ticket introuvable.'], 404);
     }
 
     $ticket = $repo->findById((int) $m[1]);

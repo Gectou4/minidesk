@@ -38,7 +38,7 @@ class TicketRepositoryTest extends TestCase
         $this->assertSame('Ticket de test', $ticket['title']);
         $this->assertSame('', $ticket['description']);
         $this->assertSame('medium', $ticket['priority']);
-        $this->assertSame('open', $ticket['status']);
+        $this->assertSame(TicketStatus::Open->value, $ticket['status']);
     }
 
     public function testCreateConserveLesAccents(): void
@@ -71,15 +71,15 @@ class TicketRepositoryTest extends TestCase
     {
         $id = $this->creer();
 
-        $this->assertTrue($this->repo->updateStatus($id, 'in_progress'));
-        $this->assertSame('in_progress', $this->repo->findById($id)['status']);
+        $this->assertTrue($this->repo->updateStatus($id, TicketStatus::InProgress));
+        $this->assertSame(TicketStatus::InProgress->value, $this->repo->findById($id)['status']);
     }
 
     public function testUpdateStatusAvecLeStatutDejaActuel(): void
     {
         $id = $this->creer();
 
-        $this->assertTrue($this->repo->updateStatus($id, 'open'));
+        $this->assertTrue($this->repo->updateStatus($id, TicketStatus::Open));
     }
 
     public function testUpdateStatusNeModifiePasLesAutresTickets(): void
@@ -87,21 +87,21 @@ class TicketRepositoryTest extends TestCase
         $cible = $this->creer('Cible');
         $autre = $this->creer('Autre');
 
-        $this->repo->updateStatus($cible, 'closed');
+        $this->repo->updateStatus($cible, TicketStatus::Closed);
 
-        $this->assertSame('open', $this->repo->findById($autre)['status']);
+        $this->assertSame(TicketStatus::Open->value, $this->repo->findById($autre)['status']);
     }
 
-    public function testUpdateStatusRefuseUnStatutInvalide(): void
+    public function testUpdateStatusRefuseUneChaineBrute(): void
     {
         $id = $this->creer();
 
-        $this->assertFalse($this->repo->updateStatus($id, 'nimporte_quoi'));
-        $this->assertSame('open', $this->repo->findById($id)['status']);
+        $this->expectException(TypeError::class);
+        $this->repo->updateStatus($id, 'nimporte_quoi');
     }
 
     public function testUpdateStatusRetourneFalseSiTicketInexistant(): void
     {
-        $this->assertFalse($this->repo->updateStatus(999999999, 'closed'));
+        $this->assertFalse($this->repo->updateStatus(999999999, TicketStatus::Closed));
     }
 }
