@@ -3,6 +3,7 @@ name: Deploy
 on:
   push:
     branches: [prod]
+  workflow_dispatch:
 
 concurrency:
   group: deploy-prod
@@ -14,6 +15,7 @@ jobs:
 
   deploy:
     needs: ci
+    if: github.ref == 'refs/heads/prod'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: production
