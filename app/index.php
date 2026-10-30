@@ -27,9 +27,17 @@ function json_response(mixed $data, int $status = 200): never
     exit;
 }
 
+/** Taille maximale du corps JSON (512 Kio) : une description de 65 535 octets tient largement, même échappée en \uXXXX. */
+const MAX_BODY_BYTES = 524288;
+
 function read_json_body(): array
 {
-    $body = file_get_contents('php://input');
+    // On lit un octet de plus que la limite pour détecter un dépassement sans charger tout le corps.
+    $body = file_get_contents('php://input', false, null, 0, MAX_BODY_BYTES + 1);
+    if (strlen($body) > MAX_BODY_BYTES) {
+        json_response(['error' => 'Corps de requête trop volumineux (maximum 512 Kio).'], 413);
+    }
+
     $data = json_decode($body, true);
     if (!is_array($data)) {
         json_response(['error' => 'Corps JSON invalide ou manquant.'], 400);
