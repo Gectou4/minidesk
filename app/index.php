@@ -100,6 +100,11 @@ if ($method === 'PATCH' && preg_match('#^/tickets/(\d+)/status$#', $uri, $m)) {
         json_response(['error' => 'Le champ "status" est obligatoire.'], 422);
     }
 
+    $ticket = $repo->findById((int) $m[1]);
+    if (!$ticket) {
+        json_response(['error' => 'Ticket introuvable.'], 404);
+    }
+
     $status = is_string($data['status']) ? TicketStatus::tryFrom($data['status']) : null;
     if ($status === null) {
         json_response([
