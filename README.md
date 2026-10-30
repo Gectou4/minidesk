@@ -186,6 +186,7 @@ make test
 
 - **Healthchecks** : `php` vérifie que PHP-FPM accepte les connexions sur le port 9000, `nginx` vérifie que `GET /` répond (donc nginx, PHP et la base fonctionnent ensemble), `db` fait un `mysqladmin ping` en TCP (`127.0.0.1`) pour ne pas être déclaré prêt pendant l'initialisation de MySQL.
 - **Robustesse** : les variables de connexion sont obligatoires (`require_env`, `DB_PORT` ajouté), et si la configuration, le secret ou la base sont indisponibles l'API répond 503 en JSON sans détail (le détail va dans les logs).
+- **Encodage** : le serveur MySQL est lancé en `utf8mb4` / `utf8mb4_unicode_ci` (`command` du service `db`). Sans cela, l'import de `schema.sql` double-encodait les accents (`bloquÃ©es`).
 
 ---
 
