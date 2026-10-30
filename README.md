@@ -202,7 +202,7 @@ make test                          # raccourci de la commande ci-dessus
 make test-smoke                    # appels curl sur l'API (stack démarrée)
 ```
 
-> **URL publique** : *(à renseigner)*
+> **URL publique** : *https://minidesk.gectou4.com*
 
 ---
 
