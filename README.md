@@ -87,6 +87,15 @@ Implémente les fonctionnalités manquantes pour que l'API soit complète et fon
 }
 ```
 
+Si `title` est absent, vide ou n'est pas une chaîne, l'API répond `422` :
+
+```json
+{
+  "error": "Données invalides.",
+  "details": { "title": "Le champ \"title\" est obligatoire." }
+}
+```
+
 #### Corps attendu pour `PATCH /tickets/{id}/status`
 
 ```json
