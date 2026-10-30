@@ -3,11 +3,8 @@
 /**
  * MiniDesk - Point d'entrée de l'API
  *
- * Routeur minimaliste. Toutes les requêtes HTTP arrivent ici via nginx.
- *
- * NOTE POUR LE CANDIDAT :
- *   Ce fichier contient au moins un bug à identifier et corriger.
- *   Lisez-le attentivement avant d'ajouter quoi que ce soit.
+ * Routeur minimaliste. Toutes les requêtes HTTP arrivent ici via nginx
+ * (ou Apache, voir .htaccess).
  */
 
 declare(strict_types=1);

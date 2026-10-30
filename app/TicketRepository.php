@@ -9,11 +9,8 @@ require_once __DIR__ . '/TicketStatus.php';
  * MiniDesk - TicketRepository
  *
  * Classe responsable de tous les accès aux données de la table `tickets`.
- *
- * NOTE POUR LE CANDIDAT :
- *   - Certaines méthodes sont incomplètes ou contiennent des erreurs.
- *   - La méthode updateStatus() est entièrement à implémenter.
- *   - Identifiez et corrigez tous les problèmes avant de soumettre.
+ * Le statut et la priorité sont typés par les enums TicketStatus et
+ * TicketPriority ; les données de création sont validées dans create().
  */
 class TicketRepository
 {
