@@ -70,3 +70,7 @@ test-smoke: ## Teste l'API avec curl (nécessite que la stack soit up)
 	@curl -s -o /dev/null -w "%{http_code}\n" -X PUT http://localhost:8080/tickets/1/status
 	@echo "=== GET /nimporte (404 attendu) ==="
 	@curl -s -o /dev/null -w "%{http_code}\n" -X GET http://localhost:8080/nimporte
+	@echo "=== GET /tickets?status=open&limit=2 (200 attendu, X-Total-Count présent) ==="
+	@curl -s -D - -o /dev/null "http://localhost:8080/tickets?status=open&limit=2" | grep -iE '^(HTTP|x-total-count)'
+	@echo "=== GET /tickets?limit=0 (422 attendu) ==="
+	@curl -s -o /dev/null -w "%{http_code}\n" "http://localhost:8080/tickets?limit=0"

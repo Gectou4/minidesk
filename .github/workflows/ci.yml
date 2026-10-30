@@ -74,6 +74,13 @@ jobs:
           curl -s -D - -o /dev/null -X PATCH "$base/tickets" | grep -qi '^allow: GET, POST'
           test "$(curl -s -o /dev/null -w '%{http_code}' "$base/nimporte")" = 404
 
+          # Filtres et pagination de GET /tickets
+          curl -fsS -D - -o /dev/null "$base/tickets?limit=2" | grep -qi '^x-total-count: [0-9]'
+          test "$(curl -fsS "$base/tickets?limit=2" | grep -c '"id"')" = 2
+          curl -fsS "$base/tickets?status=in_progress" | grep -q '"id": 1,'
+          test "$(curl -s -o /dev/null -w '%{http_code}' "$base/tickets?status=nimporte")" = 422
+          test "$(curl -s -o /dev/null -w '%{http_code}' "$base/tickets?limit=0")" = 422
+
       - name: Afficher les logs en cas d'échec
         if: failure()
         run: |
