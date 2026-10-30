@@ -15,11 +15,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/TicketRepository.php';
 
-// ⚠️ BUG #3 : le header Content-Type JSON est manquant — toutes les réponses
-//             doivent le déclarer explicitement pour être correctement interprétées
-//             par les clients HTTP (curl, fetch, Postman...).
-//             Ajoutez le header approprié ici, une seule fois pour toutes les routes.
-
+header('Content-Type: application/json; charset=utf-8');
 $method = $_SERVER['REQUEST_METHOD'];
 $uri    = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $repo   = new TicketRepository();
