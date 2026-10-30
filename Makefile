@@ -40,3 +40,27 @@ test-smoke: ## Teste l'API avec curl (nécessite que la stack soit up)
 	@curl -s -o /dev/null -w "%{http_code}\n" -X POST http://localhost:8080/tickets \
 		-H "Content-Type: application/json" \
 		-d '{"description":"sans titre"}'
+	@echo "=== PATCH /tickets/1/status (200 attendu) ==="
+	@curl -s -o /dev/null -w "%{http_code}\n" -X PATCH http://localhost:8080/tickets/1/status \
+		-H "Content-Type: application/json" \
+		-d '{"status":"open"}'
+	@echo "=== PATCH /tickets/1/status invalide (422 attendu) ==="
+	@curl -s -o /dev/null -w "%{http_code}\n" -X PATCH http://localhost:8080/tickets/1/status \
+		-H "Content-Type: application/json" \
+		-d '{"status":"nimporte_quoi"}'
+	@echo "=== PATCH /tickets/999999/status (404 attendu) ==="
+	@curl -s -o /dev/null -w "%{http_code}\n" -X PATCH http://localhost:8080/tickets/999999/status \
+		-H "Content-Type: application/json" \
+		-d '{"status":"open"}'
+	@echo "=== PATCH /tickets/1/priority (200 attendu) ==="
+	@curl -s -o /dev/null -w "%{http_code}\n" -X PATCH http://localhost:8080/tickets/1/priority \
+		-H "Content-Type: application/json" \
+		-d '{"priority":"critical"}'
+	@echo "=== PATCH /tickets/1/priority invalide (422 attendu) ==="
+	@curl -s -o /dev/null -w "%{http_code}\n" -X PATCH http://localhost:8080/tickets/1/priority \
+		-H "Content-Type: application/json" \
+		-d '{"priority":"urgent"}'
+	@echo "=== PATCH /tickets/999999/priority (404 attendu) ==="
+	@curl -s -o /dev/null -w "%{http_code}\n" -X PATCH http://localhost:8080/tickets/999999/priority \
+		-H "Content-Type: application/json" \
+		-d '{"priority":"low"}'
