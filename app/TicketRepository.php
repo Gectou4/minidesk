@@ -3,6 +3,7 @@
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/Exceptions/ValidationException.php';
 require_once __DIR__ . '/TicketPriority.php';
+require_once __DIR__ . '/TicketQuery.php';
 require_once __DIR__ . '/TicketStatus.php';
 
 /**
@@ -28,12 +29,74 @@ class TicketRepository
     }
 
     /**
-     * Retourne tous les tickets, triés du plus récent au plus ancien.
+     * Retourne les tickets, triés du plus récent au plus ancien (id décroissant
+     * à date égale, pour une pagination stable).
+     *
+     * Les filtres (statut, priorité) et la pagination (limit, offset) viennent
+     * de TicketQuery ; sans argument, tous les tickets sont renvoyés. Toutes
+     * les valeurs sont liées comme paramètres, jamais concaténées dans le SQL.
+     *
+     * @return array<int, array<string, mixed>>
      */
-    public function findAll(): array
+    public function findAll(TicketQuery $query = new TicketQuery()): array
     {
-        $stmt = $this->db->query('SELECT * FROM tickets ORDER BY created_at DESC');
+        [$where, $params] = $this->filterClause($query);
+
+        $sql = 'SELECT * FROM tickets' . $where . ' ORDER BY created_at DESC, id DESC';
+        $paginated = $query->limit !== null || $query->offset > 0;
+        if ($paginated) {
+            $sql .= ' LIMIT :limit OFFSET :offset';
+        }
+
+        $stmt = $this->db->prepare($sql);
+        foreach ($params as $name => $value) {
+            $stmt->bindValue($name, $value);
+        }
+        if ($paginated) {
+            // MySQL exige un LIMIT avec OFFSET : sans limite demandée, on prend le maximum.
+            $stmt->bindValue(':limit', $query->limit ?? PHP_INT_MAX, PDO::PARAM_INT);
+            $stmt->bindValue(':offset', $query->offset, PDO::PARAM_INT);
+        }
+        $stmt->execute();
+
         return $stmt->fetchAll();
+    }
+
+    /**
+     * Compte les tickets qui correspondent aux filtres de TicketQuery
+     * (la pagination est ignorée).
+     */
+    public function countAll(TicketQuery $query = new TicketQuery()): int
+    {
+        [$where, $params] = $this->filterClause($query);
+
+        $stmt = $this->db->prepare('SELECT COUNT(*) FROM tickets' . $where);
+        $stmt->execute($params);
+
+        return (int) $stmt->fetchColumn();
+    }
+
+    /**
+     * Clause WHERE et paramètres liés pour les filtres de TicketQuery.
+     * Les fragments SQL sont des constantes : seules les valeurs sont liées.
+     *
+     * @return array{0: string, 1: array<string, string>}
+     */
+    private function filterClause(TicketQuery $query): array
+    {
+        $conditions = [];
+        $params     = [];
+
+        if ($query->status !== null) {
+            $conditions[]      = 'status = :status';
+            $params[':status'] = $query->status->value;
+        }
+        if ($query->priority !== null) {
+            $conditions[]        = 'priority = :priority';
+            $params[':priority'] = $query->priority->value;
+        }
+
+        return [$conditions === [] ? '' : ' WHERE ' . implode(' AND ', $conditions), $params];
     }
 
     /**

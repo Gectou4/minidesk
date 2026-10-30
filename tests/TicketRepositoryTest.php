@@ -233,6 +233,111 @@ class TicketRepositoryTest extends TestCase
         $this->assertContains($id, array_map('intval', $ids));
     }
 
+    /**
+     * @param array<int, array<string, mixed>> $tickets
+     * @return int[]
+     */
+    private function ids(array $tickets): array
+    {
+        return array_map('intval', array_column($tickets, 'id'));
+    }
+
+    public function testFindAllTriePlusRecentEnPremierMemeAuMemeInstant(): void
+    {
+        $premier = $this->creer('Premier');
+        $second  = $this->creer('Second');
+
+        $ids = $this->ids($this->repo->findAll(new TicketQuery(limit: 2)));
+
+        $this->assertSame([$second, $premier], $ids);
+    }
+
+    public function testFindAllFiltreParStatut(): void
+    {
+        $ferme = $this->creer('À fermer');
+        $ouvert = $this->creer('Reste ouvert');
+        $this->repo->updateStatus($ferme, TicketStatus::Closed);
+
+        $tickets = $this->repo->findAll(new TicketQuery(status: TicketStatus::Closed));
+
+        $this->assertContains($ferme, $this->ids($tickets));
+        $this->assertNotContains($ouvert, $this->ids($tickets));
+        $this->assertSame([TicketStatus::Closed->value], array_values(array_unique(array_column($tickets, 'status'))));
+    }
+
+    public function testFindAllFiltreParPriorite(): void
+    {
+        $critique = $this->repo->create(['title' => 'Critique', 'priority' => 'critical']);
+        $normal   = $this->creer('Normal');
+
+        $tickets = $this->repo->findAll(new TicketQuery(priority: TicketPriority::Critical));
+
+        $this->assertContains($critique, $this->ids($tickets));
+        $this->assertNotContains($normal, $this->ids($tickets));
+    }
+
+    public function testFindAllCombineLesFiltres(): void
+    {
+        $cible = $this->repo->create(['title' => 'Cible', 'priority' => 'low']);
+        $this->repo->updateStatus($cible, TicketStatus::InProgress);
+        $mauvaisStatut   = $this->repo->create(['title' => 'Mauvais statut', 'priority' => 'low']);
+        $mauvaisePriorite = $this->creer('Mauvaise priorité');
+        $this->repo->updateStatus($mauvaisePriorite, TicketStatus::InProgress);
+
+        $ids = $this->ids($this->repo->findAll(new TicketQuery(
+            status: TicketStatus::InProgress,
+            priority: TicketPriority::Low,
+        )));
+
+        $this->assertContains($cible, $ids);
+        $this->assertNotContains($mauvaisStatut, $ids);
+        $this->assertNotContains($mauvaisePriorite, $ids);
+    }
+
+    public function testFindAllPagineAvecLimitEtOffset(): void
+    {
+        $a = $this->creer('A');
+        $b = $this->creer('B');
+        $c = $this->creer('C');
+
+        $this->assertSame([$c, $b], $this->ids($this->repo->findAll(new TicketQuery(limit: 2))));
+        $this->assertSame([$b, $a], $this->ids($this->repo->findAll(new TicketQuery(limit: 2, offset: 1))));
+        $this->assertSame([$a], $this->ids($this->repo->findAll(new TicketQuery(limit: 1, offset: 2))));
+    }
+
+    public function testFindAllAvecOffsetSansLimitRenvoieLaSuite(): void
+    {
+        $a = $this->creer('A');
+        $b = $this->creer('B');
+
+        $tous = $this->ids($this->repo->findAll());
+        $suite = $this->ids($this->repo->findAll(new TicketQuery(offset: 1)));
+
+        $this->assertSame(array_slice($tous, 1), $suite);
+        $this->assertContains($a, $suite);
+        $this->assertNotContains($b, $suite);
+    }
+
+    public function testFindAllAvecOffsetAuDelaDuTotalRenvoieUneListeVide(): void
+    {
+        $this->assertSame([], $this->repo->findAll(new TicketQuery(limit: 5, offset: 1000000)));
+    }
+
+    public function testCountAllCorrespondALaListeFiltreeSansPagination(): void
+    {
+        $this->creer('A');
+        $this->creer('B');
+        $query = new TicketQuery(priority: TicketPriority::Medium);
+
+        $this->assertSame(count($this->repo->findAll($query)), $this->repo->countAll($query));
+        $this->assertSame(count($this->repo->findAll()), $this->repo->countAll());
+        $this->assertSame($this->repo->countAll($query), $this->repo->countAll(new TicketQuery(
+            priority: TicketPriority::Medium,
+            limit: 1,
+            offset: 1,
+        )));
+    }
+
     public function testUpdateStatusAvecUnStatutValide(): void
     {
         $id = $this->creer();

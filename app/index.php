@@ -118,8 +118,14 @@ if ($method === 'GET' && $uri === '/') {
 
 // GET /tickets
 if ($method === 'GET' && $uri === '/tickets') {
-    $tickets = $repo->findAll();
-    json_response($tickets);
+    try {
+        $query = TicketQuery::fromArray($_GET);
+    } catch (ValidationException $e) {
+        json_response(['error' => $e->getMessage(), 'details' => $e->getErrors()], 422);
+    }
+
+    header('X-Total-Count: ' . $repo->countAll($query));
+    json_response($repo->findAll($query));
 }
 
 // POST /tickets
