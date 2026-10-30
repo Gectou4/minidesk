@@ -36,26 +36,44 @@ jobs:
             '{DB_HOST: $host, DB_PORT: "3306", MYSQL_DATABASE: $name, MYSQL_USER: $user, MYSQL_PASSWORD: $pass, APP_ENV: "production"}' \
             > deploy-config/env.json
 
+      - name: Préparer la connexion SFTP
+        env:
+          SFTP_HOST_KEY: ${{ secrets.SFTP_HOST_KEY }}
+        run: |
+          set -e
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq lftp
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SFTP_HOST_KEY" > ~/.ssh/known_hosts
+
       - name: Envoyer l'application (app/)
-        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          protocol: ftps
-          local-dir: ./app/
-          server-dir: ${{ vars.FTP_APP_DIR }}
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          LFTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          FTP_APP_DIR: ${{ vars.FTP_APP_DIR }}
+        run: |
+          set -e
+          lftp -u "$FTP_USERNAME" "sftp://$FTP_SERVER" <<EOF
+          set cmd:fail-exit yes
+          set sftp:auto-confirm no
+          set sftp:connect-program "ssh -a -x -o StrictHostKeyChecking=yes"
+          mirror -R --only-newer --verbose ./app/ "$FTP_APP_DIR"
+          EOF
 
       - name: Envoyer env.json (hors du dossier web)
-        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          protocol: ftps
-          local-dir: ./deploy-config/
-          server-dir: ./
-          state-name: .ftp-deploy-sync-state-config.json
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          LFTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+        run: |
+          set -e
+          lftp -u "$FTP_USERNAME" "sftp://$FTP_SERVER" <<EOF
+          set cmd:fail-exit yes
+          set sftp:auto-confirm no
+          set sftp:connect-program "ssh -a -x -o StrictHostKeyChecking=yes"
+          put -O ./ deploy-config/env.json
+          EOF
 
       - name: Vérifier le site
         env:
