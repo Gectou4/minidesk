@@ -144,7 +144,7 @@ Non obligatoire. Choisis **ce qui te parle le plus** — ne te force pas à tout
 | # | Fichier | Ce qui était cassé | Pourquoi c'est un problème | Correction apportée |
 |---|---------|--------------------|-----------------------------|----------------------|
 | 1 | `app/config.php` | Mot de passe MySQL écrit en clair dans le code (`define('DB_PASS', …)`). | Il est visible par tous ceux qui lisent le dépôt et reste dans l'historique Git. | Mot de passe retiré du code, lu depuis un Docker secret (`secrets/*.txt`, non versionnés). L'ancien mot de passe est remplacé. |
-| 2 | | | | |
+| 2 | `app/TicketRepository.php` | `findById()` utilise l'id directement dans la requête SQL. | Risque d'injection SQL. | Requête préparée avec paramètre lié (`:id`). |
 | 3 | | | | |
 | 4 | | | | |
 | 5 | | | | |

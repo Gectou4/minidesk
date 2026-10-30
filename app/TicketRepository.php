@@ -33,12 +33,14 @@ class TicketRepository
     /**
      * Retourne un ticket par son identifiant, ou null s'il n'existe pas.
      *
-     * ⚠️ BUG #2 : injection SQL — l'id est interpolé directement dans la requête.
-     *             Corrigez en utilisant une requête préparée avec paramètre lié.
+     * Requête préparée : l'id est transmis comme paramètre lié, jamais
+     * concaténé dans le SQL.
      */
     public function findById(int $id): ?array
     {
-        $stmt = $this->db->query("SELECT * FROM tickets WHERE id = $id");
+        $sql = "SELECT * FROM tickets WHERE id = :id";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':id' => $id]);
         $row  = $stmt->fetch();
         return $row ?: null;
     }
