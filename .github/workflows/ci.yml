@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  stack:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Préparer la configuration
+        run: |
+          cp .env.example .env
+          # Mots de passe jetables : la CI n'a pas besoin des vrais secrets
+          openssl rand -hex 16 | tr -d '\n' > secrets/db_password.txt
+          openssl rand -hex 16 | tr -d '\n' > secrets/db_root_password.txt
+
+      - name: Démarrer la stack
+        run: docker compose up -d --build --wait --wait-timeout 120
+
+      - name: Vérifier l'API
+        run: |
+          set -e
+          base=http://localhost:8080
+
+          curl -fsS "$base/" | grep -q '"status": "ok"'
+          curl -fsS -D - -o /dev/null "$base/tickets" | grep -qi '^content-type: application/json'
+          curl -fsS "$base/tickets" | grep -q '"id"'
+          curl -fsS "$base/tickets/1" | grep -q '"id": 1'
+
+          code=$(curl -s -o /dev/null -w '%{http_code}' "$base/tickets/999999")
+          test "$code" = 404
+
+          code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$base/tickets" \
+            -H 'Content-Type: application/json' \
+            -d '{"title":"Ticket CI","description":"Created by CI","priority":"low"}')
+          test "$code" = 201
+
+      - name: Afficher les logs en cas d'échec
+        if: failure()
+        run: |
+          docker compose ps
+          docker compose logs
+
+      - name: Arrêter la stack
+        if: always()
+        run: docker compose down -v
