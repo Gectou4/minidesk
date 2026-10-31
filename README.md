@@ -25,6 +25,7 @@ minidesk/
 │   ├── index.php             # Routeur principal (point d'entrée)
 │   ├── TicketRepository.php  # Accès aux données (méthode manquante)
 │   └── config.php            # Configuration / connexion PDO
+├── frontend/                 # Interface React + Bootstrap (Vite)
 ├── db/
 │   └── schema.sql            # Schéma MySQL + données de démo
 ├── nginx/
@@ -236,6 +237,8 @@ Copy-Item secrets/db_root_password.txt.example secrets/db_root_password.txt
 
 La documentation interactive est sur http://localhost:8080/docs (spécification brute : http://localhost:8080/openapi).
 
+**Interface web** : `make front-build` construit le frontend (Node tourne dans Docker, rien à installer), puis l'interface est sur http://localhost:8080/ui/ : liste paginée des tickets, filtres par statut et priorité, détail et création d'un ticket. Pour développer avec rechargement à chaud : `make front-dev` (http://localhost:5173/ui/, la stack doit être démarrée).
+
 #### Commandes `make` et équivalents sans `make`
 
 Le `Makefile` ne sert que de raccourci : chaque cible se lance sans `make`, dans n'importe quel terminal.
@@ -250,6 +253,9 @@ Le `Makefile` ne sert que de raccourci : chaque cible se lance sans `make`, dans
 | `make shell-db` | `docker compose exec db sh -c 'mysql -u"$MYSQL_USER" -p"$(cat "$MYSQL_PASSWORD_FILE")" "$MYSQL_DATABASE"'` |
 | `make test` | `docker compose run --rm --build phpunit` |
 | `make openapi` | `docker compose run --rm phpunit sh -c "composer install --no-interaction --prefer-dist -q && vendor/bin/openapi app -o app/api-spec.json --version 3.0.0"` |
+| `make front-install` | `docker run --rm -v "$PWD/frontend:/app" -w /app node:22-alpine npm ci` |
+| `make front-build` | `docker run --rm -v "$PWD/frontend:/app" -w /app node:22-alpine sh -c "npm ci && npm run build"` |
+| `make front-dev` | cible interactive : voir le `Makefile` (serveur Vite sur le port 5173) |
 | `make test-smoke` | appels `curl` sur l'API (stack démarrée) : voir ci-dessous |
 
 Les commandes de ce tableau se copient telles quelles sous bash, zsh et PowerShell : leurs guillemets sont faits pour les trois.
@@ -307,6 +313,7 @@ Get-Content db/schema.sql | Where-Object { $_ -notmatch '^(CREATE DATABASE|USE )
 - **Méthode non supportée** : si la route existe mais pas avec la méthode HTTP utilisée (par exemple `DELETE /tickets/1`), l'API répond `405` avec `{"error": "Méthode non autorisée."}` et un en-tête `Allow` listant les méthodes acceptées. Une route inconnue reste un `404`.
 - **Erreurs inattendues** : `index.php` installe un `set_exception_handler()`. Toute exception non rattrapée pendant le routage (erreur PDO, `TypeError`...) est écrite dans les logs (message, fichier, trace) et l'API répond `500` avec `{"error": "Erreur interne du serveur"}`, sans détail technique. Si la connexion à la base échoue à l'initialisation, la réponse reste un `503`.
 - **Configuration sans variables d'environnement** : sur un hébergement mutualisé, `config.php` lit un fichier `env.json` placé au-dessus du dossier de l'application (hors du dossier web). Les variables déjà définies (Docker) restent prioritaires.
+- **Frontend** : `frontend/` est une application React + Bootstrap 5 construite avec Vite (outil de build : il produit des fichiers statiques dans `frontend/dist/`, ignoré par Git, sans Node en production). Elle est servie par nginx sous `/ui/` (`location ^~ /ui/`, `frontend/dist` monté en lecture seule) : même origine que l'API, donc **pas de CORS** et l'API reste à la racine. La pagination utilise `limit`/`offset` et l'en-tête `X-Total-Count`. Thème « centre de contrôle » aérospatial (`src/theme.css`) : seul l'affichage est habillé (statut `in_progress` affiché « En vol »), les valeurs échangées avec l'API ne changent pas. Le déploiement OVH du frontend n'est pas couvert : le workflow `deploy.yml` n'envoie que `app/`.
 - **Apache** : `app/.htaccess` est l'équivalent de `nginx/default.conf` pour l'hébergement mutualisé (routage vers `index.php`, fichiers sensibles interdits). Il est sans effet sous nginx.
 
 ---
