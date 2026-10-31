@@ -316,7 +316,28 @@ Get-Content db/schema.sql | Where-Object { $_ -notmatch '^(CREATE DATABASE|USE )
 > *(Bonus — 200 mots max)* Qu'aurais-tu fait différemment avec plus de temps ?
 > Authentification, scalabilité, CI/CD, observabilité, automatisation, évolution ou connexion avec un autre service... ce que tu juges pertinent.
 
-*(à renseigner)*
+Qualité du code : hook de pré-commit (Mago, PHPCS, PHPStan) pour uniformiser le code style de l’équipe.
+Sécurité : authentification et RBAC, avec des rôles distincts pour la saisie des tickets et leur prise en charge, réservés aux équipes via l’application d’authentification interne.
+Sécurité CI/CD : scan de vulnérabilités avant déploiement (dépendances composer audit/Trivy, secrets Gitleaks, SAST Semgrep), bloquant sur les sévérités High/Critical.
+IA : réponses au format Markdown pour permettre à un agent habilité de lire et traiter les tickets via MCP, en maîtrisant le coût en tokens.
+Observabilité : ELK ou Loki/Grafana/Prometheus, complétés par OpenTelemetry (traces) et check (db, espace disque) pour avoir une valeur réaliste à "status" sur l'index.
+Suivi : nouveaux champs sur les tickets, comme une référence GitLab/github privée pour un meilleur suivi, un meilleur ciblage du contexte, les dates de création et de mise à jour, le créateur et la personne qui prend en charge le ticket.
+UX : ajout d’une recherche de tickets avec filtres.
+Export : export des tickets selon des filtres personnalisables.
+
+*Usage IA*
+Emploi de l’IA après avoir traité les bugs 1 à 5 et corrigé les lacunes identifiées dans index.php et TicketRepository, sur les éléments suivants :
+
+Correction de texte
+Assistance au déploiement spécifique à OVH mutualisé avec LFTP
+Assistance sur les healthchecks, insuffisants dans ma première version
+Conversion des commandes multi-environnements pour que chacun puisse opérer depuis sa machine
+Génération des docblocks OpenAPI
+Suggestion : ajout de contrôles sur les buffers de body et les champs SQL TEXT, jugé pertinent
+Ajout de cas de tests pour assurer une couverture complète
+Proposition d’UI (je suis technicien, pas artiste)
+
+Chaque modification est relue, testée et validée avant d’être intégrée.
 
 ---
 
