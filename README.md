@@ -199,32 +199,64 @@ Non obligatoire. Choisis **ce qui te parle le plus** — ne te force pas à tout
 
 ### Lancer le projet
 
+**Prérequis** : Git et Docker avec le plugin Compose v2 (`docker compose`, pas `docker-compose`). PHP, Composer et MySQL ne sont **pas** à installer : tout tourne dans les conteneurs. Le port `8080` doit être libre.
+
+| | Linux | macOS | Windows |
+|---|---|---|---|
+| **Docker** | Docker Engine + plugin Compose (ajouter son utilisateur au groupe `docker`, sinon préfixer par `sudo`) | Docker Desktop (Apple Silicon et Intel) | Docker Desktop avec le backend WSL 2 |
+| **Terminal** | bash, zsh... | Terminal (zsh) | PowerShell (`pwsh`), ou Git Bash / WSL |
+| **`make`** | généralement installé (`build-essential`) | `xcode-select --install` | **absent par défaut** : optionnel, voir les équivalents plus bas |
+
+**1. Cloner le dépôt**, identique partout :
+
 ```bash
-# 1. Cloner le dépôt
 git clone https://github.com/<ton-compte>/minidesk.git
 cd minidesk
-
-# 2. Configurer l'environnement
-cp .env.example .env
-# (renseigne les valeurs dans .env, il ne contient aucun mot de passe)
-
-# Les mots de passe sont des Docker secrets (fichiers non versionnés)
-cp secrets/db_password.txt.example secrets/db_password.txt
-cp secrets/db_root_password.txt.example secrets/db_root_password.txt
-# (remplace les valeurs `changeme` avant le premier démarrage)
-
-# 3. Démarrer la stack
-make up
-# ou : docker compose up -d --build
-
-# 4. Vérifier que tout fonctionne
-docker compose run --rm phpunit    # tests PHPUnit (dans Docker, sur la base de la stack)
-make test                          # raccourci de la commande ci-dessus
-make test-smoke                    # appels curl sur l'API (stack démarrée)
-make openapi                       # régénère app/openapi.json après un changement de l'API
 ```
 
+**2. Configurer l'environnement.** Le fichier `.env` ne contient aucun mot de passe : les mots de passe sont des Docker secrets (fichiers non versionnés). Remplacer ensuite les valeurs `changeme` avant le premier démarrage.
+
+Linux / macOS (bash, zsh) :
+
+```bash
+cp .env.example .env
+cp secrets/db_password.txt.example secrets/db_password.txt
+cp secrets/db_root_password.txt.example secrets/db_root_password.txt
+```
+
+Windows (PowerShell) :
+
+```powershell
+Copy-Item .env.example .env
+Copy-Item secrets/db_password.txt.example secrets/db_password.txt
+Copy-Item secrets/db_root_password.txt.example secrets/db_root_password.txt
+```
+
+**3. Démarrer la stack** (`docker compose up -d --build`, identique partout), puis **4. vérifier** avec les tests PHPUnit : `docker compose run --rm phpunit` (dans Docker, sur la base de la stack).
+
 La documentation interactive est sur http://localhost:8080/docs (spécification brute : http://localhost:8080/openapi).
+
+#### Commandes `make` et équivalents sans `make`
+
+Le `Makefile` ne sert que de raccourci : chaque cible se lance sans `make`, dans n'importe quel terminal.
+
+| `make` | Équivalent |
+|---|---|
+| `make up` | `docker compose up -d --build` |
+| `make down` | `docker compose down` |
+| `make logs` | `docker compose logs -f` |
+| `make ps` | `docker compose ps` |
+| `make shell-php` | `docker compose exec php sh` |
+| `make shell-db` | `docker compose exec db sh -c 'mysql -u"$MYSQL_USER" -p"$(cat "$MYSQL_PASSWORD_FILE")" "$MYSQL_DATABASE"'` |
+| `make test` | `docker compose run --rm --build phpunit` |
+| `make openapi` | `docker compose run --rm phpunit sh -c "composer install --no-interaction --prefer-dist -q && vendor/bin/openapi app -o app/openapi.json --version 3.0.0"` |
+| `make test-smoke` | appels `curl` sur l'API (stack démarrée) : voir ci-dessous |
+
+Les commandes de ce tableau se copient telles quelles sous bash, zsh et PowerShell : leurs guillemets sont faits pour les trois.
+
+**`make test-smoke`** enchaîne des `curl`, `head`, `tr` : sous Linux et macOS, `make test-smoke` suffit. Sous Windows, le lancer depuis Git Bash ou WSL. Dans PowerShell, `curl` est un alias d'`Invoke-WebRequest` : taper **`curl.exe`** pour obtenir le vrai `curl` (fourni avec Windows 10 et 11), par exemple `curl.exe -i http://localhost:8080/tickets`.
+
+**Windows et `make`** : s'il est installé (`winget install ezwinports.make`) et lancé depuis Git Bash, les fins de ligne peuvent poser problème. Avec `core.autocrlf=true` (réglage par défaut de Git pour Windows), le `Makefile` est récupéré en CRLF et ses commandes peuvent échouer. Si c'est le cas, régler `git config --global core.autocrlf input` avant de cloner, ou utiliser les commandes `docker compose` ci-dessus.
 
 > **URL publique** : *https://minidesk.gectou4.com*
 
@@ -240,10 +272,18 @@ Un push sur la branche `prod` lance la CI, puis déploie le contenu de `app/` pa
 
 `SFTP_HOST_KEY` épingle la clé du serveur : le déploiement échoue si elle change. Pour l'obtenir, prendre la ligne `ssh-ed25519` renvoyée par `docker run --rm alpine sh -c "apk add -q openssh-client && ssh-keyscan -p 22 <FTP_SERVER>"` (le `ssh-keyscan` de Windows échoue sur certains algorithmes).
 
-**Une seule fois côté OVH** : choisir PHP 8.2 ou plus, créer la base MySQL, puis importer le schéma sans ses deux premières lignes :
+**Une seule fois côté Hébergeur** : choisir PHP 8.2 ou plus, créer la base MySQL, puis importer le schéma sans ses deux premières lignes :
+
+Linux / macOS (bash, zsh) :
 
 ```bash
 sed '/^CREATE DATABASE/d;/^USE /d' db/schema.sql > schema-ovh.sql
+```
+
+Windows :
+
+```powershell
+Get-Content db/schema.sql | Where-Object { $_ -notmatch '^(CREATE DATABASE|USE )' } | Set-Content schema-ovh.sql
 ```
 
 **Limites** : pas de retour arrière ni de migration de base automatiques. Le mot de passe de la base est dans `env.json` sur le serveur, hors du dossier web.
