@@ -18,7 +18,7 @@ use OpenApi\Attributes as OA;
  */
 #[OA\Info(
     title: 'MiniDesk API',
-    version: '1.4.0',
+    version: '1.4.1',
     description: "API REST de gestion de tickets de support.\n\n"
         . "Toutes les réponses, erreurs comprises, sont en JSON (UTF-8). Une méthode HTTP non supportée "
         . "sur une route existante répond `405` avec l'en-tête `Allow`, une route inconnue `404`. "
@@ -44,7 +44,7 @@ final class ApiDoc
                     required: ['service', 'version', 'status'],
                     properties: [
                         new OA\Property(property: 'service', type: 'string', example: 'MiniDesk API'),
-                        new OA\Property(property: 'version', type: 'string', example: '1.4.0'),
+                        new OA\Property(property: 'version', type: 'string', example: '1.4.1'),
                         new OA\Property(property: 'status', type: 'string', example: 'ok'),
                     ]
                 )

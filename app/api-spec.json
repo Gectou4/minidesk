@@ -3,7 +3,7 @@
     "info": {
         "title": "MiniDesk API",
         "description": "API REST de gestion de tickets de support.\n\nToutes les réponses, erreurs comprises, sont en JSON (UTF-8). Une méthode HTTP non supportée sur une route existante répond `405` avec l'en-tête `Allow`, une route inconnue `404`. Une erreur serveur répond `500` (`Erreur interne du serveur`) et une base de données injoignable `503` (`Service momentanément indisponible`), sans détail technique.",
-        "version": "1.4.0"
+        "version": "1.4.1"
     },
     "servers": [
         {
@@ -34,7 +34,7 @@
                                         },
                                         "version": {
                                             "type": "string",
-                                            "example": "1.4.0"
+                                            "example": "1.4.1"
                                         },
                                         "status": {
                                             "type": "string",

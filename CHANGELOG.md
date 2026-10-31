@@ -2,6 +2,11 @@
 
 Toutes les évolutions notables de l'API MiniDesk. Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et les versions suivent [SemVer](https://semver.org/lang/fr/). La version courante est renvoyée par `GET /` (`app/index.php`).
 
+## [1.4.1] - 2026-10-31
+
+### Corrigé
+- `GET /openapi` répondait `404` sur Apache (hébergement OVH) : `MultiViews` associait la route au fichier `openapi.json`. La spécification est renommée `app/api-spec.json`.
+
 ## [1.4.0] - 2026-10-31
 
 ### Ajouté
