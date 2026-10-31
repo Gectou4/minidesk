@@ -237,7 +237,7 @@ Copy-Item secrets/db_root_password.txt.example secrets/db_root_password.txt
 
 La documentation interactive est sur http://localhost:8080/docs (spécification brute : http://localhost:8080/openapi).
 
-**Interface web** : `make front-build` construit le frontend (Node tourne dans Docker, rien à installer), puis l'interface est sur http://localhost:8080/ui/ : liste paginée des tickets, filtres par statut et priorité, détail et création d'un ticket. Pour développer avec rechargement à chaud : `make front-dev` (http://localhost:5173/ui/, la stack doit être démarrée).
+**Interface web** : `make front-build` construit le frontend (Node tourne dans Docker, rien à installer), puis l'interface est sur http://localhost:8080/ui/ : liste paginée des tickets, filtres par statut et priorité, détail, création d'un ticket et modification de son statut et de sa priorité (depuis le détail). Pour développer avec rechargement à chaud : `make front-dev` (http://localhost:5173/ui/, la stack doit être démarrée).
 
 #### Commandes `make` et équivalents sans `make`
 
@@ -342,7 +342,7 @@ Conversion des commandes multi-environnements pour que chacun puisse opérer dep
 Génération des docblocks OpenAPI
 Suggestion : ajout de contrôles sur les buffers de body et les champs SQL TEXT, jugé pertinent
 Ajout de cas de tests pour assurer une couverture complète
-Proposition d’UI (je suis technicien, pas artiste)
+Proposition d’UI (je suis technicien, pas artiste), en ayant cadré le thème souhaité pour l'occasion  
 
 Chaque modification est relue, testée et validée avant d’être intégrée.
 
