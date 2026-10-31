@@ -343,6 +343,7 @@ Génération des docblocks OpenAPI
 Suggestion : ajout de contrôles sur les buffers de body et les champs SQL TEXT, jugé pertinent
 Ajout de cas de tests pour assurer une couverture complète
 Proposition d’UI (je suis technicien, pas artiste), en ayant cadré le thème souhaité pour l'occasion  
+Run playwright de test complémentaire
 
 Chaque modification est relue, testée et validée avant d’être intégrée.
 
