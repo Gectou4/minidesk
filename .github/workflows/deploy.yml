@@ -88,10 +88,27 @@ jobs:
           PROD_URL: ${{ vars.PROD_URL }}
         run: |
           set -e
-          opts=(--retry 5 --retry-delay 3 --retry-all-errors)
 
-          curl -fsS "${opts[@]}" "$PROD_URL/" | grep -q '"status": "ok"'
-          curl -fsS "${opts[@]}" -D - -o /dev/null "$PROD_URL/tickets" | grep -qi '^content-type: application/json'
+          # Pendant l'envoi, le site change d'état quelques secondes (lftp remplace les
+          # fichiers un par un) : on réessaie la vérification entière, pas seulement curl,
+          # car une réponse 200 au contenu inattendu n'est pas relancée par --retry.
+          verifier() {  # verifier <description> <commande> : 10 essais, 5 s d'écart
+            local i
+            for i in $(seq 1 10); do
+              if bash -c "$2"; then
+                return 0
+              fi
+              echo "Essai $i/10 échoué : $1" >&2
+              sleep 5
+            done
+            echo "::error::$1"
+            return 1
+          }
+
+          verifier "GET / doit répondre status ok" \
+            'curl -fsS --max-time 10 "$PROD_URL/" | grep -q "\"status\": \"ok\""'
+          verifier "GET /tickets doit répondre en JSON" \
+            'curl -fsS --max-time 10 -D - -o /dev/null "$PROD_URL/tickets" | grep -qi "^content-type: application/json"'
 
           # La configuration ne doit pas être accessible depuis le web
           code=$(curl -s -o /dev/null -w '%{http_code}' "$PROD_URL/env.json")
