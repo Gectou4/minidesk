@@ -80,3 +80,7 @@ test-smoke: ## Teste l'API avec curl (nécessite que la stack soit up)
 	@echo "=== POST /tickets avec un corps de 600 Ko (413 attendu) ==="
 	@head -c 600000 /dev/zero | tr '\0' 'a' | curl -s -o /dev/null -w "%{http_code}\n" -X POST http://localhost:8080/tickets \
 		-H "Content-Type: application/json" --data-binary @-
+	@echo "=== GET /openapi (200 attendu, JSON) ==="
+	@curl -s -D - -o /dev/null http://localhost:8080/openapi | grep -iE '^(HTTP|content-type)'
+	@echo "=== GET /docs (200 attendu, Swagger UI sur http://localhost:8080/docs) ==="
+	@curl -s -D - -o /dev/null http://localhost:8080/docs | grep -iE '^(HTTP|content-type)'

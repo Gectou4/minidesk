@@ -87,6 +87,10 @@ jobs:
           echo "$headers" | head -1 | grep -q ' 413 '
           echo "$headers" | grep -qi '^content-type: application/json'
 
+          # Documentation : spécification JSON et page Swagger UI (via nginx)
+          curl -fsS "$base/openapi" | grep -q '"title": "MiniDesk API"'
+          curl -fsS -D - -o /dev/null "$base/docs" | grep -qi '^content-type: text/html'
+
       - name: Afficher les logs en cas d'échec
         if: failure()
         run: |
