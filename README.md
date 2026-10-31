@@ -227,11 +227,13 @@ make test-smoke                    # appels curl sur l'API (stack démarrée)
 
 ### Déploiement OVH (hébergement mutualisé)
 
-Un push sur la branche `prod` lance la CI, puis déploie le contenu de `app/` par FTPS sur l'hébergement OVH (`.github/workflows/deploy.yml`).
+Un push sur la branche `prod` lance la CI, puis déploie le contenu de `app/` par SFTP (port 22, avec `lftp`) sur l'hébergement OVH (`.github/workflows/deploy.yml`). Le workflow peut aussi être lancé à la main (`gh workflow run Deploy --ref prod`).
 
-**Réglages GitHub** (environnement `production`) :
-- secrets : `FTP_SERVER`, `FTP_USERNAME`, `FTP_PASSWORD`, `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`
+**Réglages GitHub** (secrets du dépôt ou de l'environnement `production`) :
+- secrets : `FTP_SERVER` (nom d'hôte seul, sans protocole), `FTP_USERNAME`, `FTP_PASSWORD`, `SFTP_HOST_KEY`, `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`
 - variables : `PROD_URL`, `FTP_APP_DIR` (dossier racine du site, avec un `/` final)
+
+`SFTP_HOST_KEY` épingle la clé du serveur : le déploiement échoue si elle change. Pour l'obtenir, prendre la ligne `ssh-ed25519` renvoyée par `docker run --rm alpine sh -c "apk add -q openssh-client && ssh-keyscan -p 22 <FTP_SERVER>"` (le `ssh-keyscan` de Windows échoue sur certains algorithmes).
 
 **Une seule fois côté OVH** : choisir PHP 8.2 ou plus, créer la base MySQL, puis importer le schéma sans ses deux premières lignes :
 
