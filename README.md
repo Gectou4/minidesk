@@ -70,6 +70,8 @@ Implémente les fonctionnalités manquantes pour que l'API soit complète et fon
 | `GET`    | `/tickets/{id}`          | ✅ Déjà implémenté — détail d'un ticket                  |
 | `PATCH`  | `/tickets/{id}/status`   | ✅ Implémenté en **v1.1.0** — met à jour le statut d'un ticket (`open`, `in_progress`, `closed`) |
 | `PATCH`  | `/tickets/{id}/priority` | ✅ Implémenté en **v1.2.0** — met à jour la priorité d'un ticket (`low`, `medium`, `high`, `critical`) |
+| `GET`    | `/openapi`               | ✅ Implémenté en **v1.4.0** — spécification OpenAPI 3.0 (JSON) |
+| `GET`    | `/docs`                  | ✅ Implémenté en **v1.4.0** — documentation interactive (Swagger UI) |
 
 #### Contraintes techniques
 
@@ -219,7 +221,10 @@ make up
 docker compose run --rm phpunit    # tests PHPUnit (dans Docker, sur la base de la stack)
 make test                          # raccourci de la commande ci-dessus
 make test-smoke                    # appels curl sur l'API (stack démarrée)
+make openapi                       # régénère app/openapi.json après un changement de l'API
 ```
+
+La documentation interactive est sur http://localhost:8080/docs (spécification brute : http://localhost:8080/openapi).
 
 > **URL publique** : *https://minidesk.gectou4.com*
 
@@ -256,6 +261,7 @@ sed '/^CREATE DATABASE/d;/^USE /d' db/schema.sql > schema-ovh.sql
 - **CI** : le workflow `.github/workflows/ci.yml` (GitHub Actions) construit la stack avec des mots de passe jetables, attend que les healthchecks soient verts, puis teste l'API avec `curl` (`/`, `/tickets`, `/tickets/{id}`, 404, création).
 - **Tests PHPUnit** : `docker compose run --rm phpunit` (ou `make test`) lance PHPUnit dans un conteneur dédié (`Dockerfile.test`, service `phpunit` du profil `test`, donc absent de `docker compose up`), relié à la base de la stack. Chaque test de `TicketRepository` tourne dans une transaction annulée à la fin, donc les données ne changent pas. `TicketRepository` accepte un `PDO` en paramètre (défaut : `get_db()`) pour rester testable. Les tests de `config.php` n'ont pas besoin de la base.
 - **Tests HTTP** : `tests/Http/` lance le serveur intégré de PHP (`php -S`) sur `app/index.php` (classe `TestServer`) et envoie de vraies requêtes : routage, codes (200, 201, 400, 404, 405, 413, 422), en-têtes (`Allow`, `X-Total-Count`), filtres et pagination. `ApiErreursTest` relance le serveur avec une base cassée pour vérifier les réponses `503` et `500`. Contrairement aux tests du repository (transaction annulée), ces requêtes sont validées en base : chaque test supprime les tickets qu'il crée. Un test vérifie aussi que la version renvoyée par `GET /` est celle du `CHANGELOG.md`.
+- **Documentation OpenAPI** : `GET /docs` affiche Swagger UI (avec « Try it out ») et `GET /openapi` renvoie la spécification OpenAPI 3.0. La spécification est décrite par des attributs dans `app/ApiDoc.php` (une méthode par route, avec les schémas et réponses réutilisés) et dans les enums `TicketStatus` / `TicketPriority`, dont les valeurs sont lues par swagger-php. `make openapi` génère `app/openapi.json`, qui est versionné : la production n'a besoin ni de Composer ni de `vendor/`. Les attributs vivent dans une classe à part parce que swagger-php ne lit que les commentaires rattachés à une classe, pas ceux placés devant les routes procédurales de `index.php`. Un test PHPUnit régénère la spécification et échoue si `app/openapi.json` est périmé ou invalide, si ses enums ou sa version divergent du code et du `CHANGELOG.md`, ou si une route documentée n'existe pas (ou n'a pas les mêmes méthodes) dans le routeur. Une nouvelle route de `index.php` doit donc recevoir sa méthode dans `ApiDoc`. `/docs` et `/openapi` ne touchent pas à la base et restent disponibles si elle est en panne. Swagger UI est chargé depuis cdnjs en version figée (5.17.14) avec des empreintes SRI, sous une CSP qui n'autorise que cet hôte et un script signé par un nonce. Le fichier `openapi.json` n'est pas servi directement (nginx et `.htaccess` refusent les `.json`) : il passe par la route `/openapi`.
 - **Changement de statut** : les statuts sont définis par l'enum `TicketStatus` (`app/TicketStatus.php` : `open`, `in_progress`, `closed`, alignés sur `db/schema.sql`). `PATCH /tickets/{id}/status` convertit le corps avec `TicketStatus::tryFrom()` et répond 422 si le statut est invalide. `updateStatus(int, TicketStatus)` (requête préparée avec `WHERE id`) renvoie `false` si le ticket n'existe pas, ce qui donne un 404.
 - **Taille du corps** : le corps d'une requête est limité à 512 Kio. Au-dessus, l'API répond `413` avec `{"error": "Corps de requête trop volumineux (maximum 512 Kio)."}`. La limite est appliquée par nginx (`client_max_body_size` dans `nginx/default.conf`) et par PHP (`MAX_BODY_BYTES` dans `app/index.php`), ce qui couvre aussi l'hébergement Apache. Elle laisse de la marge à une description de 65 535 octets, même échappée en `\uXXXX`. Le `.htaccess` n'utilise pas `LimitRequestBody`, qui exige `AllowOverride Limit` et provoquerait une erreur 500 sur un hébergement qui ne l'autorise pas.
 - **Méthode non supportée** : si la route existe mais pas avec la méthode HTTP utilisée (par exemple `DELETE /tickets/1`), l'API répond `405` avec `{"error": "Méthode non autorisée."}` et un en-tête `Allow` listant les méthodes acceptées. Une route inconnue reste un `404`.
