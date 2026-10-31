@@ -18,9 +18,16 @@ async function request(path, options = {}) {
   } catch {
     throw new ApiError('Liaison perdue avec l\'API.', 0);
   }
-  const body = await res.json().catch(() => null);
+  // Une requête annulée (changement de filtre ou de page) doit rester une AbortError, pas un corps vide
+  const body = await res.json().catch((e) => {
+    if (e.name === 'AbortError') throw e;
+    return null;
+  });
   if (!res.ok) {
     throw new ApiError(body?.error ?? `Erreur ${res.status}`, res.status, body?.details);
+  }
+  if (body === null) {
+    throw new ApiError('Réponse invalide de l\'API.', res.status);
   }
   return { body, res };
 }
