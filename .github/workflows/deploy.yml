@@ -22,6 +22,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Construire le frontend dans app/ui/
+        run: |
+          set -e
+          npm ci --prefix frontend
+          npm run build --prefix frontend
+          # Copié dans app/ pour partir avec l'application (servi sous /ui/ par Apache)
+          mkdir app/ui
+          cp -r frontend/dist/. app/ui/
+
       - name: Générer env.json (configuration de l'application)
         env:
           DB_HOST: ${{ secrets.DB_HOST }}
@@ -109,6 +124,9 @@ jobs:
             'curl -fsS --max-time 10 "$PROD_URL/" | grep -q "\"status\": \"ok\""'
           verifier "GET /tickets doit répondre en JSON" \
             'curl -fsS --max-time 10 -D - -o /dev/null "$PROD_URL/tickets" | grep -qi "^content-type: application/json"'
+
+          verifier "GET /ui/ doit servir le frontend" \
+            'curl -fsS --max-time 10 "$PROD_URL/ui/" | grep -q "id=\"root\""'
 
           # La configuration ne doit pas être accessible depuis le web
           code=$(curl -s -o /dev/null -w '%{http_code}' "$PROD_URL/env.json")
