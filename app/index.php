@@ -23,7 +23,7 @@ $uri    = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 function json_response(mixed $data, int $status = 200): never
 {
     http_response_code($status);
-    echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+    echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
     exit;
 }
 
