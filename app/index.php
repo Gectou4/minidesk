@@ -87,6 +87,63 @@ function patch_enum_field(
     json_response($repo->findById($id));
 }
 
+/** GET /openapi : spécification générée par `make openapi` (voir app/ApiDoc.php). */
+function serve_openapi(): never
+{
+    $file = __DIR__ . '/openapi.json';
+    if (!is_file($file)) {
+        json_response(['error' => 'Documentation indisponible.'], 404);
+    }
+
+    header('Content-Length: ' . filesize($file));
+    readfile($file);
+    exit;
+}
+
+/**
+ * GET /docs : interface Swagger UI. Les scripts viennent de cdnjs (version
+ * figée, contrôlée par SRI) ; la CSP n'autorise que cet hôte et le script
+ * d'initialisation, signé par un nonce.
+ */
+function serve_docs(): never
+{
+    $cdn   = 'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.17.14';
+    $nonce = base64_encode(random_bytes(16));
+
+    http_response_code(200);
+    header('Content-Type: text/html; charset=utf-8');
+    header(
+        "Content-Security-Policy: default-src 'none'; base-uri 'none'; form-action 'none'; "
+        . "script-src 'nonce-$nonce' https://cdnjs.cloudflare.com; "
+        . "style-src 'unsafe-inline' https://cdnjs.cloudflare.com; "
+        . "img-src 'self' data: https://cdnjs.cloudflare.com; "
+        . "font-src https://cdnjs.cloudflare.com; connect-src 'self'"
+    );
+    header('Referrer-Policy: no-referrer');
+
+    echo <<<HTML
+    <!DOCTYPE html>
+    <html lang="fr">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>MiniDesk API - Documentation</title>
+        <link rel="stylesheet" href="$cdn/swagger-ui.css"
+              integrity="sha384-wxLW6kwyHktdDGr6Pv1zgm/VGJh99lfUbzSn6HNHBENZlCN7W602k9VkGdxuFvPn" crossorigin="anonymous">
+    </head>
+    <body>
+        <div id="swagger-ui"></div>
+        <script src="$cdn/swagger-ui-bundle.js"
+                integrity="sha384-wmyclcVGX/WhUkdkATwhaK1X1JtiNrr2EoYJ+diV3vj4v6OC5yCeSu+yW13SYJep" crossorigin="anonymous"></script>
+        <script nonce="$nonce">
+            SwaggerUIBundle({ url: 'openapi', dom_id: '#swagger-ui', deepLinking: true, tryItOutEnabled: true });
+        </script>
+    </body>
+    </html>
+    HTML;
+    exit;
+}
+
 function log_throwable(Throwable $t): void
 {
     error_log($t->getMessage() . PHP_EOL . $t->getFile() . ':' . $t->getLine() . PHP_EOL . $t->getTraceAsString());
@@ -103,6 +160,15 @@ set_exception_handler(static function (Throwable $t): void {
     log_throwable($t);
     json_response(['error' => 'Erreur interne du serveur'], 500);
 });
+
+// Documentation : servie sans accès à la base, elle reste lisible si la base est en panne.
+if ($uri === '/docs' || $uri === '/openapi') {
+    if ($method !== 'GET') {
+        header('Allow: GET');
+        json_response(['error' => 'Méthode non autorisée.'], 405);
+    }
+    $uri === '/docs' ? serve_docs() : serve_openapi();
+}
 
 try {
     $repo = new TicketRepository();
