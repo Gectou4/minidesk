@@ -54,6 +54,8 @@ body {
 tr[role='button'] { cursor: pointer; }
 
 .form-control, .form-select { background-color: #070e24; border-color: var(--md-line); }
+.form-select.st-open, .form-select.st-flight, .form-select.st-landed,
+.form-select.pr-low, .form-select.pr-medium, .form-select.pr-high, .form-select.pr-critical { border-color: var(--accent); color: var(--accent); }
 .form-control:focus, .form-select:focus { border-color: var(--md-cyan); box-shadow: 0 0 0 .2rem #38e1ff33; }
 
 .page-link { background: transparent; border-color: var(--md-line); color: var(--md-cyan); }

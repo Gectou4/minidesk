@@ -55,6 +55,9 @@ export default function App() {
     setReload((n) => n + 1);
   }, []);
 
+  // Après une modification depuis le détail : recharge liste et compteurs sans changer de page
+  const onChanged = useCallback(() => setReload((n) => n + 1), []);
+
   const pageCount = Math.max(1, Math.ceil(data.total / PAGE_SIZE));
 
   return (
@@ -99,7 +102,7 @@ export default function App() {
         </div>
       </section>
 
-      {selectedId && <TicketDetail id={selectedId} onClose={() => setSelectedId(null)} />}
+      {selectedId && <TicketDetail id={selectedId} onClose={() => setSelectedId(null)} onChanged={onChanged} />}
       {showNew && <NewTicketModal onClose={() => setShowNew(false)} onCreated={onCreated} />}
     </div>
   );

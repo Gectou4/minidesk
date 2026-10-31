@@ -38,6 +38,11 @@ export async function getTicket(id, signal) {
   return (await request(`/tickets/${id}`, { signal })).body;
 }
 
+/** Met à jour un champ énuméré : field vaut 'status' ou 'priority'. Renvoie le ticket modifié. */
+export async function updateTicketField(id, field, value) {
+  return (await request(`/tickets/${id}/${field}`, { method: 'PATCH', body: JSON.stringify({ [field]: value }) })).body;
+}
+
 export async function createTicket(data) {
   return (await request('/tickets', { method: 'POST', body: JSON.stringify(data) })).body;
 }
