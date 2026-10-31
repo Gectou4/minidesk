@@ -11,6 +11,7 @@ secrets/*
 # Dépendances
 vendor/
 node_modules/
+frontend/dist/
 
 # Éditeurs
 .idea/

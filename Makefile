@@ -1,4 +1,6 @@
-.PHONY: help up down logs ps shell-php shell-db test openapi test-smoke
+.PHONY: help up down logs ps shell-php shell-db test openapi test-smoke front-install front-dev front-build
+
+NODE = docker run --rm -v "$(CURDIR)/frontend:/app" -w /app node:22-alpine
 
 help: ## Affiche cette aide
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -27,6 +29,15 @@ test: ## Lance les tests PHPUnit dans Docker (démarre la base si besoin)
 
 openapi: ## Régénère app/api-spec.json depuis les attributs de app/ApiDoc.php
 	docker compose run --rm phpunit sh -c "composer install --no-interaction --prefer-dist -q && vendor/bin/openapi app -o app/api-spec.json --version 3.0.0"
+
+front-install: ## Installe les dépendances du frontend (npm ci, dans Docker)
+	$(NODE) npm ci
+
+front-dev: ## Serveur de dev du frontend sur http://localhost:5173/ui/ (API sur :8080)
+	docker run --rm -it -p 5173:5173 -e API_TARGET=http://host.docker.internal:8080 --add-host=host.docker.internal:host-gateway -v "$(CURDIR)/frontend:/app" -w /app node:22-alpine sh -c "npm ci && npm run dev"
+
+front-build: ## Construit le frontend dans frontend/dist (servi sur http://localhost:8080/ui/)
+	$(NODE) sh -c "npm ci && npm run build"
 
 test-smoke: ## Teste l'API avec curl (nécessite que la stack soit up)
 	@echo "=== GET / ==="
