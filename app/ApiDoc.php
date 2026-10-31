@@ -6,7 +6,7 @@ use OpenApi\Attributes as OA;
  * MiniDesk - Documentation OpenAPI
  *
  * Ce fichier ne contient aucune logique : ses attributs décrivent l'API pour
- * swagger-php, qui génère app/openapi.json (servi par GET /openapi et affiché
+ * swagger-php, qui génère app/api-spec.json (servi par GET /openapi et affiché
  * par GET /docs). Les attributs sont ignorés à l'exécution, la production n'a
  * donc pas besoin de vendor/.
  *
@@ -14,7 +14,7 @@ use OpenApi\Attributes as OA;
  * enums sont déduits de TicketStatus et TicketPriority.
  *
  * Après toute modification de l'API ou de cette doc : make openapi. Un test
- * échoue si app/openapi.json n'est plus à jour.
+ * échoue si app/api-spec.json n'est plus à jour.
  */
 #[OA\Info(
     title: 'MiniDesk API',

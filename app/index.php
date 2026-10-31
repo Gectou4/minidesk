@@ -90,7 +90,7 @@ function patch_enum_field(
 /** GET /openapi : spécification générée par `make openapi` (voir app/ApiDoc.php). */
 function serve_openapi(): never
 {
-    $file = __DIR__ . '/openapi.json';
+    $file = __DIR__ . '/api-spec.json';
     if (!is_file($file)) {
         json_response(['error' => 'Documentation indisponible.'], 404);
     }

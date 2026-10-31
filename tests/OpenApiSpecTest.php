@@ -3,7 +3,7 @@
 use PHPUnit\Framework\TestCase;
 
 /**
- * La spécification app/openapi.json est générée par swagger-php à partir des
+ * La spécification app/api-spec.json est générée par swagger-php à partir des
  * attributs de app/ApiDoc.php et des enums. Ces tests garantissent qu'elle est
  * à jour, valide et cohérente avec le code.
  */
@@ -14,7 +14,7 @@ class OpenApiSpecTest extends TestCase
     /** @return array<string, mixed> */
     private static function committee(): array
     {
-        return json_decode((string) file_get_contents(self::RACINE . '/app/openapi.json'), true, 512, JSON_THROW_ON_ERROR);
+        return json_decode((string) file_get_contents(self::RACINE . '/app/api-spec.json'), true, 512, JSON_THROW_ON_ERROR);
     }
 
     public function testLaSpecificationCommitteeEstAJourEtValide(): void
@@ -39,7 +39,7 @@ class OpenApiSpecTest extends TestCase
             $this->assertEquals(
                 json_decode((string) file_get_contents($sortie), true, 512, JSON_THROW_ON_ERROR),
                 self::committee(),
-                'app/openapi.json est périmé : lancer `make openapi` et le commiter.'
+                'app/api-spec.json est périmé : lancer `make openapi` et le commiter.'
             );
         } finally {
             @unlink($sortie);

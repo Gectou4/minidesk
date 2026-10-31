@@ -56,7 +56,7 @@ class ApiDocTest extends TestCase
         $this->assertStringStartsWith('3.', $reponse['json']['openapi']);
         $this->assertSame('MiniDesk API', $reponse['json']['info']['title']);
         $this->assertEquals(
-            json_decode((string) file_get_contents(__DIR__ . '/../../app/openapi.json'), true),
+            json_decode((string) file_get_contents(__DIR__ . '/../../app/api-spec.json'), true),
             $reponse['json']
         );
     }
@@ -101,7 +101,7 @@ class ApiDocTest extends TestCase
      */
     public static function cheminsDocumentes(): array
     {
-        $spec = json_decode((string) file_get_contents(__DIR__ . '/../../app/openapi.json'), true);
+        $spec = json_decode((string) file_get_contents(__DIR__ . '/../../app/api-spec.json'), true);
 
         $cas = [];
         foreach ($spec['paths'] as $chemin => $operations) {
