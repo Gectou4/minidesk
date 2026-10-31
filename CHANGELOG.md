@@ -2,6 +2,13 @@
 
 Toutes les évolutions notables de l'API MiniDesk. Le format suit [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/) et les versions suivent [SemVer](https://semver.org/lang/fr/). La version courante est renvoyée par `GET /` (`app/index.php`).
 
+## [1.4.0] - 2026-10-31
+
+### Ajouté
+- Documentation OpenAPI 3.0 de l'API : spécification `app/openapi.json` générée par swagger-php à partir des attributs de `app/ApiDoc.php` et des enums (`make openapi`).
+- `GET /openapi` renvoie la spécification en JSON.
+- `GET /docs` affiche la documentation interactive (Swagger UI, avec essai des requêtes). Les deux routes restent disponibles si la base est injoignable.
+
 ## [1.3.1] - 2026-10-30
 
 ### Corrigé

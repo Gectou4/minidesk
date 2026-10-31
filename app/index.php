@@ -185,7 +185,7 @@ try {
 if ($method === 'GET' && $uri === '/') {
     json_response([
         'service' => 'MiniDesk API',
-        'version' => '1.3.1',
+        'version' => '1.4.0',
         'status'  => 'ok',
     ]);
 }
