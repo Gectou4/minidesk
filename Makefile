@@ -1,4 +1,4 @@
-.PHONY: help up down logs ps shell-php shell-db test test-smoke
+.PHONY: help up down logs ps shell-php shell-db test openapi test-smoke
 
 help: ## Affiche cette aide
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -24,6 +24,9 @@ shell-db: ## Ouvre un shell MySQL
 
 test: ## Lance les tests PHPUnit dans Docker (démarre la base si besoin)
 	docker compose run --rm --build phpunit
+
+openapi: ## Régénère app/openapi.json depuis les attributs de app/ApiDoc.php
+	docker compose run --rm phpunit sh -c "composer install --no-interaction --prefer-dist -q && vendor/bin/openapi app -o app/openapi.json --version 3.0.0"
 
 test-smoke: ## Teste l'API avec curl (nécessite que la stack soit up)
 	@echo "=== GET / ==="

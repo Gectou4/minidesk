@@ -1,0 +1,596 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "MiniDesk API",
+        "description": "API REST de gestion de tickets de support.\n\nToutes les réponses, erreurs comprises, sont en JSON (UTF-8). Une méthode HTTP non supportée sur une route existante répond `405` avec l'en-tête `Allow`, une route inconnue `404`. Une erreur serveur répond `500` (`Erreur interne du serveur`) et une base de données injoignable `503` (`Service momentanément indisponible`), sans détail technique.",
+        "version": "1.3.1"
+    },
+    "servers": [
+        {
+            "url": "/",
+            "description": "Serveur courant"
+        }
+    ],
+    "paths": {
+        "/": {
+            "get": {
+                "tags": [
+                    "Service"
+                ],
+                "summary": "État du service",
+                "description": "Renvoie le nom et la version de l'API. Sert aussi de contrôle de santé : la réponse suppose que la base de données est joignable.",
+                "operationId": "getStatus",
+                "responses": {
+                    "200": {
+                        "description": "L'API fonctionne.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "service": {
+                                            "type": "string",
+                                            "example": "MiniDesk API"
+                                        },
+                                        "version": {
+                                            "type": "string",
+                                            "example": "1.3.1"
+                                        },
+                                        "status": {
+                                            "type": "string",
+                                            "example": "ok"
+                                        }
+                                    },
+                                    "required": [
+                                        "service",
+                                        "version",
+                                        "status"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                }
+            }
+        },
+        "/tickets": {
+            "get": {
+                "tags": [
+                    "Tickets"
+                ],
+                "summary": "Lister les tickets",
+                "description": "Renvoie les tickets du plus récent au plus ancien, avec filtres et pagination facultatifs. L'en-tête `X-Total-Count` donne le nombre total de tickets correspondant aux filtres, indépendamment de `limit` et `offset`.",
+                "operationId": "listTickets",
+                "parameters": [
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "description": "Ne garder que les tickets de ce statut.",
+                        "required": false,
+                        "schema": {
+                            "$ref": "#/components/schemas/TicketStatus"
+                        }
+                    },
+                    {
+                        "name": "priority",
+                        "in": "query",
+                        "description": "Ne garder que les tickets de cette priorité.",
+                        "required": false,
+                        "schema": {
+                            "$ref": "#/components/schemas/TicketPriority"
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "description": "Nombre maximal de tickets renvoyés. Sans `limit`, tous les tickets sont renvoyés.",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 100,
+                            "example": 20
+                        }
+                    },
+                    {
+                        "name": "offset",
+                        "in": "query",
+                        "description": "Nombre de tickets à ignorer en début de liste.",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "default": 0,
+                            "example": 0
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Liste des tickets (tableau vide si aucun ne correspond).",
+                        "headers": {
+                            "X-Total-Count": {
+                                "description": "Nombre total de tickets correspondant aux filtres.",
+                                "schema": {
+                                    "type": "integer",
+                                    "example": 42
+                                }
+                            }
+                        },
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/Ticket"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Paramètre de requête invalide. Toutes les erreurs sont listées dans `details`.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ValidationError"
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Tickets"
+                ],
+                "summary": "Créer un ticket",
+                "description": "Crée un ticket au statut `open`. La priorité vaut `medium` si elle est absente. Les erreurs de validation sont cumulées dans `details`.",
+                "operationId": "createTicket",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/TicketInput"
+                            },
+                            "example": {
+                                "title": "Imprimante en panne",
+                                "description": "Le bac 2 est bloqué.",
+                                "priority": "high"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Ticket créé.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Ticket"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/InvalidJson"
+                    },
+                    "413": {
+                        "$ref": "#/components/responses/BodyTooLarge"
+                    },
+                    "422": {
+                        "description": "Données invalides.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ValidationError"
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                }
+            }
+        },
+        "/tickets/{id}": {
+            "get": {
+                "tags": [
+                    "Tickets"
+                ],
+                "summary": "Consulter un ticket",
+                "operationId": "getTicket",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/TicketId"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Le ticket.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Ticket"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/TicketNotFound"
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                }
+            }
+        },
+        "/tickets/{id}/status": {
+            "patch": {
+                "tags": [
+                    "Tickets"
+                ],
+                "summary": "Changer le statut d'un ticket",
+                "description": "Un ticket inconnu répond toujours `404`, avant la validation du statut.",
+                "operationId": "updateTicketStatus",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/TicketId"
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StatusInput"
+                            },
+                            "example": {
+                                "status": "in_progress"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Le ticket mis à jour.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Ticket"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/InvalidJson"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/TicketNotFound"
+                    },
+                    "413": {
+                        "$ref": "#/components/responses/BodyTooLarge"
+                    },
+                    "422": {
+                        "description": "Statut absent ou invalide.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                },
+                                "example": {
+                                    "error": "Statut invalide. Valeurs acceptées : open, in_progress, closed."
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                }
+            }
+        },
+        "/tickets/{id}/priority": {
+            "patch": {
+                "tags": [
+                    "Tickets"
+                ],
+                "summary": "Changer la priorité d'un ticket",
+                "description": "Un ticket inconnu répond toujours `404`, avant la validation de la priorité.",
+                "operationId": "updateTicketPriority",
+                "parameters": [
+                    {
+                        "$ref": "#/components/parameters/TicketId"
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PriorityInput"
+                            },
+                            "example": {
+                                "priority": "critical"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Le ticket mis à jour.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Ticket"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "$ref": "#/components/responses/InvalidJson"
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/TicketNotFound"
+                    },
+                    "413": {
+                        "$ref": "#/components/responses/BodyTooLarge"
+                    },
+                    "422": {
+                        "description": "Priorité absente ou invalide.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Error"
+                                },
+                                "example": {
+                                    "error": "Priorité invalide. Valeurs acceptées : low, medium, high, critical."
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/ServerError"
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "Ticket": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "title": {
+                        "type": "string",
+                        "maxLength": 255,
+                        "example": "Serveur SMTP hors ligne"
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Texte libre, chaîne vide si absent à la création (65 535 octets maximum).",
+                        "maxLength": 65535,
+                        "example": "Les emails transactionnels ne partent plus depuis 14h."
+                    },
+                    "priority": {
+                        "$ref": "#/components/schemas/TicketPriority"
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/TicketStatus"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "description": "Date de création (heure du serveur, AAAA-MM-JJ HH:MM:SS).",
+                        "example": "2026-10-30 19:06:47"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "description": "Date de dernière modification (heure du serveur, AAAA-MM-JJ HH:MM:SS).",
+                        "example": "2026-10-30 20:08:54"
+                    }
+                },
+                "required": [
+                    "id",
+                    "title",
+                    "description",
+                    "priority",
+                    "status",
+                    "created_at",
+                    "updated_at"
+                ]
+            },
+            "TicketInput": {
+                "type": "object",
+                "properties": {
+                    "title": {
+                        "type": "string",
+                        "description": "Titre, obligatoire (255 caractères maximum).",
+                        "minLength": 1,
+                        "maxLength": 255,
+                        "example": "Imprimante en panne"
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Description libre (65 535 octets maximum). Absente ou `null` : chaîne vide.",
+                        "nullable": true,
+                        "maxLength": 65535,
+                        "example": "Le bac 2 est bloqué."
+                    },
+                    "priority": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/TicketPriority"
+                            },
+                            {
+                                "type": "object",
+                                "nullable": true,
+                                "enum": [
+                                    null
+                                ]
+                            }
+                        ],
+                        "description": "Priorité. Absente ou `null` : `medium`."
+                    }
+                },
+                "required": [
+                    "title"
+                ]
+            },
+            "StatusInput": {
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "$ref": "#/components/schemas/TicketStatus"
+                    }
+                },
+                "required": [
+                    "status"
+                ]
+            },
+            "PriorityInput": {
+                "type": "object",
+                "properties": {
+                    "priority": {
+                        "$ref": "#/components/schemas/TicketPriority"
+                    }
+                },
+                "required": [
+                    "priority"
+                ]
+            },
+            "Error": {
+                "type": "object",
+                "properties": {
+                    "error": {
+                        "type": "string",
+                        "example": "Ticket introuvable."
+                    }
+                },
+                "required": [
+                    "error"
+                ]
+            },
+            "ValidationError": {
+                "type": "object",
+                "properties": {
+                    "error": {
+                        "type": "string",
+                        "example": "Données invalides."
+                    },
+                    "details": {
+                        "type": "object",
+                        "description": "Une entrée par champ invalide : nom du champ, puis message.",
+                        "additionalProperties": {
+                            "type": "string"
+                        },
+                        "example": {
+                            "title": "Le champ \"title\" est obligatoire."
+                        }
+                    }
+                },
+                "required": [
+                    "error",
+                    "details"
+                ]
+            },
+            "TicketPriority": {
+                "type": "string",
+                "description": "Priorité d'un ticket, de la moins à la plus urgente : `low`, `medium`, `high`, `critical`. Par défaut `medium`.",
+                "enum": [
+                    "low",
+                    "medium",
+                    "high",
+                    "critical"
+                ],
+                "example": "medium"
+            },
+            "TicketStatus": {
+                "type": "string",
+                "description": "Statut d'un ticket : `open` (ouvert), `in_progress` (en cours), `closed` (fermé). Un ticket est créé `open`.",
+                "enum": [
+                    "open",
+                    "in_progress",
+                    "closed"
+                ],
+                "example": "open"
+            }
+        },
+        "responses": {
+            "TicketNotFound": {
+                "description": "Ticket introuvable.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/Error"
+                        }
+                    }
+                }
+            },
+            "InvalidJson": {
+                "description": "Corps absent ou JSON invalide.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/Error"
+                        }
+                    }
+                }
+            },
+            "BodyTooLarge": {
+                "description": "Corps de la requête supérieur à 512 Kio.",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/Error"
+                        }
+                    }
+                }
+            },
+            "ServerError": {
+                "description": "Erreur serveur : `500` (erreur interne) ou `503` (base de données injoignable).",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "$ref": "#/components/schemas/Error"
+                        }
+                    }
+                }
+            }
+        },
+        "parameters": {
+            "TicketId": {
+                "name": "id",
+                "in": "path",
+                "description": "Identifiant du ticket.",
+                "required": true,
+                "schema": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "example": 1
+                }
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Service",
+            "description": "État de l'API"
+        },
+        {
+            "name": "Tickets",
+            "description": "Création, consultation et mise à jour des tickets"
+        }
+    ]
+}
