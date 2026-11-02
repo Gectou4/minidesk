@@ -325,7 +325,7 @@ Get-Content db/schema.sql | Where-Object { $_ -notmatch '^(CREATE DATABASE|USE )
 
 Qualité du code : hook de pré-commit (Mago, PHPCS, PHPStan) pour uniformiser le code style de l’équipe.
 Sécurité : authentification et RBAC, avec des rôles distincts pour la saisie des tickets et leur prise en charge, réservés aux équipes via l’application d’authentification interne.
-Sécurité CI/CD : scan de vulnérabilités avant déploiement (dépendances composer audit/Trivy, secrets Gitleaks, SAST Semgrep), bloquant sur les sévérités High/Critical.
+Sécurité CI/CD : scan de vulnérabilités avant déploiement (dépendances composer audit/Trivy, secrets Gitleaks, SAST Semgrep), bloquant sur les sévérités High/Critical. Kubernetes avec Helm.
 IA : réponses au format Markdown pour permettre à un agent habilité de lire et traiter les tickets via MCP, en maîtrisant le coût en tokens.
 Observabilité : ELK ou Loki/Grafana/Prometheus, complétés par OpenTelemetry (traces) et check (db, espace disque) pour avoir une valeur réaliste à "status" sur l'index.
 Suivi : nouveaux champs sur les tickets, comme une référence GitLab/github privée pour un meilleur suivi, un meilleur ciblage du contexte, historiques des dates de mise à jour, le créateur et la personne qui prend en charge le ticket.
